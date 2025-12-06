@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { User, UserRole } from '../types';
-import { LayoutDashboard, FilePlus, Settings, Building2, Moon, Sun, BookOpen } from 'lucide-react';
+import { LayoutDashboard, FilePlus, Settings, Moon, Sun, BookOpen } from 'lucide-react';
 
 interface LayoutProps {
   user: User;

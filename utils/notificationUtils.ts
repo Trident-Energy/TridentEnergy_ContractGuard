@@ -1,5 +1,5 @@
 
-import { ContractData, User, ContractStatus } from '../types';
+import { ContractData } from '../types';
 
 export const formatEmailBody = (contract: ContractData): string => {
   return `
@@ -30,7 +30,7 @@ Please log in to the Trident Contract Guard system to review full details.
   `.trim();
 };
 
-export const triggerEmailNotification = (toName: string, subject: string, body: string) => {
+export const triggerEmailNotification = (toName: string, subject: string, _body: string) => {
   // 1. Log to console for debugging
   console.log(`[EMAIL SENT] To: ${toName} | Subject: ${subject}`);
   

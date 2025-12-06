@@ -1,4 +1,5 @@
-import { ContractData, RiskTrigger, RiskCategory } from '../types';
+
+import { ContractData, RiskTrigger } from '../types';
 import { INITIAL_TRIGGERS } from '../constants';
 
 export const evaluateRisk = (data: Partial<ContractData>): { isHighRisk: boolean; triggers: RiskTrigger[] } => {

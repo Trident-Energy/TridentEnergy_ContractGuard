@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Book, LayoutDashboard, FilePlus, ShieldAlert, Users, CheckCircle, Bot, ArrowRight, Settings, FileText, AlertTriangle, List, CheckSquare, BookOpen } from 'lucide-react';
+import { Book, LayoutDashboard, FilePlus, ShieldAlert, Users, CheckCircle, Bot, ArrowRight, List, CheckSquare, BookOpen } from 'lucide-react';
 
 interface GuideSection {
   id: string;
@@ -48,7 +48,7 @@ export const UserGuide: React.FC = () => {
             <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors">
               <h3 className="font-bold text-slate-900 dark:text-white mb-3 text-lg">User Roles</h3>
               <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-300">
-                <li><strong className="text-blue-600 dark:text-blue-400">SCM / Contract Owner:</strong> Initiates contracts, uploads documents, and answers reviewer queries.</li>
+                <li><strong className="text-blue-600 dark:text-blue-400">SCM / Contract Owner:</strong> Initiates contracts, uploads documents, and answer reviewer queries.</li>
                 <li><strong className="text-purple-600 dark:text-purple-400">Corporate Reviewers:</strong> (CFO, Legal, Function Heads) Review submissions for technical and commercial validity.</li>
                 <li><strong className="text-orange-600 dark:text-orange-400">CEO:</strong> Final approver for contracts flagged as "High Risk".</li>
                 <li><strong className="text-slate-600 dark:text-slate-400">Ad-Hoc Reviewer:</strong> Subject Matter Experts (HSE, Engineering) invited to consult on specific contracts.</li>

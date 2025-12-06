@@ -1,13 +1,14 @@
+
 import React, { useState } from 'react';
 import { User, UserRole, Entity } from '../types';
 import { MOCK_USERS } from '../constants';
-import { Edit2, Trash2, Plus, Shield, CheckCircle, XCircle, Power } from 'lucide-react';
+import { Edit2, Trash2, Plus, Shield, CheckCircle, Power } from 'lucide-react';
 
 interface AdminSettingsProps {
   currentUser: User;
 }
 
-export const AdminSettings: React.FC<AdminSettingsProps> = ({ currentUser }) => {
+export const AdminSettings: React.FC<AdminSettingsProps> = () => {
   const [users, setUsers] = useState<User[]>(MOCK_USERS);
   const [editingId, setEditingId] = useState<string | null>(null);
 

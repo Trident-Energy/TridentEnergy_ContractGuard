@@ -1,6 +1,6 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
-import { ContractData, ContractStatus, RiskCategory, Entity, User } from '../types';
+import { ContractData, ContractStatus, Entity, User } from '../types';
 import { MOCK_USERS } from '../constants';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { AlertCircle, CheckCircle, Clock, DollarSign, Search, Filter, ArrowRight, MessageSquare, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Paperclip, UserCheck } from 'lucide-react';
@@ -263,7 +263,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ contracts, onViewContract,
                   }}
                   cursor="pointer"
                 >
-                  {metrics.statusData.map((entry, index) => (
+                  {metrics.statusData.map((_entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>

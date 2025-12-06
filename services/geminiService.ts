@@ -1,5 +1,13 @@
+
 import { GoogleGenAI } from "@google/genai";
 import { ContractData } from "../types";
+
+// Fix for TypeScript error TS2580
+declare var process: {
+  env: {
+    API_KEY: string;
+  }
+};
 
 const getApiKey = () => process.env.API_KEY || '';
 

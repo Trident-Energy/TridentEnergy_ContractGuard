@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { User, ContractData, Entity, ContractStatus, ContractDocument, RiskCategory } from '../types';
+import { User, ContractData, ContractStatus, ContractDocument } from '../types';
 import { evaluateRisk } from '../utils/riskLogic';
 import { formatEmailBody, triggerEmailNotification } from '../utils/notificationUtils';
 import { refineContractText } from '../services/geminiService';

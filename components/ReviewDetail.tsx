@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ContractData, User, UserRole, ContractStatus, ContractDocument, Comment, ContractReview } from '../types';
+import { ContractData, User, UserRole, ContractStatus, ContractDocument, Comment } from '../types';
 import { analyzeContractRisks } from '../services/geminiService';
 import { MOCK_USERS } from '../constants';
 import { formatEmailBody, triggerEmailNotification } from '../utils/notificationUtils';
-import { CheckCircle, XCircle, FileText, Download, MessageSquare, Bot, AlertTriangle, Upload, Trash2, Send, History, Clock, AlertCircle, Save, RotateCcw, X, ShieldCheck, Edit3, ArrowUpCircle, UserPlus, Users } from 'lucide-react';
+import { CheckCircle, XCircle, FileText, Download, MessageSquare, Bot, AlertTriangle, Upload, Send, History, Clock, AlertCircle, Save, RotateCcw, X, ShieldCheck, Edit3, ArrowUpCircle, UserPlus, Users } from 'lucide-react';
 
 interface ReviewDetailProps {
   contract: ContractData;
