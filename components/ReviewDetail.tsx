@@ -367,12 +367,12 @@ export const ReviewDetail: React.FC<ReviewDetailProps> = ({ contract, currentUse
       <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex justify-between items-start bg-slate-50 dark:bg-slate-900/50">
         <div>
            <div className="flex items-center gap-3">
-             <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{contract.contractorName}</h2>
+             <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{contract.title || contract.contractorName}</h2>
              <span className={`px-2 py-1 text-xs font-bold rounded-full border ${statusStyle.badge}`}>
                 {contract.status}
              </span>
            </div>
-           <p className="text-slate-500 dark:text-slate-400 mt-1">ID: {contract.id} • Entity: {contract.entity}</p>
+           <p className="text-slate-500 dark:text-slate-400 mt-1">Contractor: {contract.contractorName} • ID: {contract.id}</p>
         </div>
         
         <div className="flex items-center gap-3">
@@ -452,7 +452,18 @@ export const ReviewDetail: React.FC<ReviewDetailProps> = ({ contract, currentUse
                 <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                   <DataCard label="Submitted By" value={MOCK_USERS.find(u => u.id === contract.submitterId)?.name || 'Unknown'} />
                   <DataCard label="Type" value={contract.contractType || 'N/A'} />
-                  <DataCard label="Amount" value={`$${contract.amount.toLocaleString()}`} />
+                  <DataCard label="Project" value={contract.project || 'N/A'} />
+                  <div className="p-3 border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-800">
+                    <span className="block text-xs text-slate-500 dark:text-slate-400 uppercase font-semibold">Value</span>
+                    <span className="font-bold text-base text-slate-900 dark:text-white truncate block" title="USD Equivalent">
+                      ${contract.amount.toLocaleString()} <span className="text-xs font-normal text-slate-500">USD</span>
+                    </span>
+                    {(contract.originalCurrency && contract.originalCurrency !== 'USD') && (
+                       <span className="text-xs text-slate-500 block truncate">
+                         {contract.originalAmount?.toLocaleString()} {contract.originalCurrency}
+                       </span>
+                    )}
+                  </div>
                   <DataCard label="Department" value={contract.department} />
                   <DataCard label="Review Status" value={contract.status} />
                 </section>

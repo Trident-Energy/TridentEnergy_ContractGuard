@@ -5,6 +5,7 @@ import { Dashboard } from './components/Dashboard';
 import { NewSubmission } from './components/NewSubmission';
 import { ReviewDetail } from './components/ReviewDetail';
 import { AdminSettings } from './components/AdminSettings';
+import { UserGuide } from './components/UserGuide';
 import { MOCK_USERS, MOCK_CONTRACTS } from './constants';
 import { ContractData } from './types';
 import { Mail, X } from 'lucide-react';
@@ -126,6 +127,9 @@ const App: React.FC = () => {
 
       case 'admin':
         return <AdminSettings currentUser={user} />;
+        
+      case 'guide':
+        return <UserGuide />;
 
       default:
         return <div>Not found</div>;

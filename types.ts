@@ -109,10 +109,19 @@ export interface ContractData {
   otherChecksDetails?: string;
 
   // Section 2: Contract Info
+  title: string;
+  project?: string; // New Field
   contractorName: string;
-  contractType: 'CAPEX' | 'OPEX' | 'MIXED'; // Added field
-  amount: number; // USD
-  currency: string;
+  contractType: 'CAPEX' | 'OPEX' | 'MIXED'; 
+  
+  // Financials
+  amount: number; // USD Equivalent (Used for risk logic)
+  currency: string; // Usually 'USD' in the backend, but we keep it for reference
+  
+  originalAmount: number; // Amount in local currency
+  originalCurrency: string; // 'USD', 'BRL', 'GBP', 'XAF'
+  exchangeRate: number; // Rate used for conversion
+
   startDate: string;
   endDate: string;
   hasExtensionOptions: boolean;
@@ -155,7 +164,7 @@ export interface ContractData {
   comments: Comment[];
   hasUnreadComments?: boolean;
   reviews: ContractReview[];
-  adHocReviewers: AdHocReviewer[]; // New field
+  adHocReviewers: AdHocReviewer[];
   documents: ContractDocument[];
   aiRiskAnalysis?: string;
   corporateApprovals: {

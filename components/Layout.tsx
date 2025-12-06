@@ -1,6 +1,7 @@
+
 import React from 'react';
 import { User, UserRole } from '../types';
-import { LayoutDashboard, FilePlus, Settings, Building2, Moon, Sun } from 'lucide-react';
+import { LayoutDashboard, FilePlus, Settings, Building2, Moon, Sun, BookOpen } from 'lucide-react';
 
 interface LayoutProps {
   user: User;
@@ -25,18 +26,18 @@ export const Layout: React.FC<LayoutProps> = ({
 }) => {
   return (
     <div className={`min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-200 flex flex-col`}>
-      {/* 1. Primary Header - Dark Brand Color */}
-      <header className="bg-slate-900 dark:bg-black text-white px-6 py-3 flex items-center justify-between border-b border-slate-800 shrink-0 z-50">
+      {/* 1. Primary Header - Custom Brand Color #283C50 */}
+      <header className="bg-[#283C50] text-white px-6 py-3 flex items-center justify-between border-b border-[#1f3041] shrink-0 z-50 shadow-sm">
         
-        {/* Logo */}
-        <div className="flex items-center gap-3 cursor-pointer" onClick={() => onChangeView('dashboard')}>
-          <div className="bg-blue-600 p-1.5 rounded-lg shadow-lg shadow-blue-900/50">
-            <Building2 size={22} className="text-white"/>
-          </div>
-          <div className="flex flex-col">
-            <h1 className="text-lg font-bold tracking-tight text-white leading-none">TRIDENT</h1>
-            <span className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">Contract Guard</span>
-          </div>
+        {/* Logo / Header Image */}
+        <div className="flex items-center gap-4 cursor-pointer" onClick={() => onChangeView('dashboard')}>
+          <img 
+            src="https://www.trident-energy.com/app/themes/trident-energy/dist/images/favicon.png?id=2e0b14e50770eab630923c46b052a708" 
+            alt="Trident Energy Contract Guard" 
+            className="h-12 w-auto object-contain" 
+          />
+          <div className="h-8 w-px bg-white/20"></div>
+          <h1 className="text-xl font-semibold tracking-tight text-white/90">High Risk Contracts Review</h1>
         </div>
 
         {/* Right Actions */}
@@ -44,22 +45,22 @@ export const Layout: React.FC<LayoutProps> = ({
            {/* Dark Mode Toggle */}
            <button 
             onClick={toggleDarkMode}
-            className="p-1.5 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+            className="p-2 rounded-full hover:bg-white/10 text-slate-300 hover:text-white transition-colors"
             title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
           >
-            {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+            {darkMode ? <Sun size={20} /> : <Moon size={20} />}
           </button>
 
-           <div className="h-6 w-px bg-slate-800"></div>
+           <div className="h-8 w-px bg-white/20"></div>
 
            {/* User Profile */}
-           <div className="flex items-center gap-3">
+           <div className="flex items-center gap-4">
              <div className="text-right hidden sm:block">
-               <p className="text-sm font-medium text-slate-200">{user.name}</p>
-                <div className="flex items-center justify-end gap-1">
-                  <span className={`w-2 h-2 rounded-full ${user.isActive ? 'bg-green-500' : 'bg-red-500'}`}></span>
+               <p className="text-sm font-bold text-white tracking-wide">{user.name}</p>
+                <div className="flex items-center justify-end gap-1.5 mt-0.5">
+                  <span className={`w-2 h-2 rounded-full ${user.isActive ? 'bg-[#4ade80]' : 'bg-red-500'}`}></span>
                   <select 
-                    className="bg-transparent text-[10px] text-slate-400 border-none p-0 cursor-pointer focus:ring-0 text-right appearance-none hover:text-white uppercase tracking-wider"
+                    className="bg-transparent text-[11px] text-slate-300 border-none p-0 cursor-pointer focus:ring-0 text-right appearance-none hover:text-white uppercase font-medium"
                     value={user.id}
                     onChange={(e) => onChangeUser(e.target.value)}
                     title="Switch User Role (Demo)"
@@ -72,25 +73,25 @@ export const Layout: React.FC<LayoutProps> = ({
                   </select>
                 </div>
              </div>
-             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white text-sm font-bold shadow-md border-2 border-slate-700">
+             <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white text-base font-bold shadow-inner border border-white/10">
                 {user.name.charAt(0)}
              </div>
           </div>
         </div>
       </header>
 
-      {/* 2. Secondary Navigation - Below Header */}
-      <nav className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-1 shrink-0 shadow-sm z-40">
-        <div className="flex items-center space-x-1 overflow-x-auto">
+      {/* 2. Secondary Navigation - Same Brand Color #283C50 */}
+      <nav className="bg-[#283C50] border-b border-[#1f3041] px-6 py-0 shrink-0 shadow-md z-40">
+        <div className="flex items-center space-x-2 overflow-x-auto">
           <NavItem 
-            icon={<LayoutDashboard size={16} />} 
+            icon={<LayoutDashboard size={18} />} 
             label="Dashboard" 
             active={currentView === 'dashboard'} 
             onClick={() => onChangeView('dashboard')} 
           />
           {user.role === UserRole.SCM && (
              <NavItem 
-               icon={<FilePlus size={16} />} 
+               icon={<FilePlus size={18} />} 
                label="New Submission" 
                active={currentView === 'new'} 
                onClick={() => onChangeView('new')} 
@@ -98,12 +99,18 @@ export const Layout: React.FC<LayoutProps> = ({
           )}
           {user.role === UserRole.ADMIN && (
              <NavItem 
-               icon={<Settings size={16} />} 
+               icon={<Settings size={18} />} 
                label="Admin Settings" 
                active={currentView === 'admin'} 
                onClick={() => onChangeView('admin')} 
              />
           )}
+          <NavItem 
+            icon={<BookOpen size={18} />} 
+            label="User Guide" 
+            active={currentView === 'guide'} 
+            onClick={() => onChangeView('guide')} 
+          />
         </div>
       </nav>
 
@@ -117,13 +124,14 @@ export const Layout: React.FC<LayoutProps> = ({
   );
 };
 
+// NavItem updated for dark background context
 const NavItem = ({ icon, label, active, onClick }: { icon: any, label: string, active: boolean, onClick: () => void }) => (
   <button 
     onClick={onClick}
-    className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-all duration-200 text-sm font-medium whitespace-nowrap ${
+    className={`flex items-center gap-2 px-5 py-4 border-b-4 transition-all duration-200 text-sm font-semibold whitespace-nowrap ${
       active 
-        ? 'border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400 bg-blue-50/50 dark:bg-blue-900/10' 
-        : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50'
+        ? 'border-[#4ade80] text-white bg-white/10' 
+        : 'border-transparent text-slate-300 hover:text-white hover:bg-white/5'
     }`}
   >
     {icon}

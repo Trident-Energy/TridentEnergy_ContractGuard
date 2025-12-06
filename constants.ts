@@ -1,3 +1,4 @@
+
 import { User, UserRole, Entity, ContractStatus, RiskCategory, ContractData } from './types';
 
 export const MOCK_USERS: User[] = [
@@ -30,7 +31,14 @@ export const INITIAL_TRIGGERS = [
   { id: 't11', category: RiskCategory.ENVIRONMENTAL, description: 'Significant environmental impact potential', triggered: false },
 ];
 
-const createMockContract = (id: string, entity: Entity, status: ContractStatus, amount: number, title: string): ContractData => {
+export const EXCHANGE_RATES: Record<string, number> = {
+  'USD': 1.0,
+  'BRL': 0.20, // 1 BRL = 0.20 USD
+  'GBP': 1.27, // 1 GBP = 1.27 USD
+  'XAF': 0.0016 // 1 XAF = 0.0016 USD
+};
+
+const createMockContract = (id: string, entity: Entity, status: ContractStatus, amount: number, title: string, project?: string): ContractData => {
   // Determine type: For mock purposes, large contracts are CAPEX, small are OPEX
   const contractType = amount > 5000000 ? 'CAPEX' : 'OPEX';
   
@@ -51,10 +59,15 @@ const createMockContract = (id: string, entity: Entity, status: ContractStatus, 
     id,
     entity,
     department: 'Operations',
-    contractorName: title,
+    title: title,
+    project: project || 'General Operations',
+    contractorName: `${title} Provider Ltd`,
     contractType,
     amount,
     currency: 'USD',
+    originalAmount: amount,
+    originalCurrency: 'USD',
+    exchangeRate: 1.0,
     startDate: '2024-01-01',
     endDate: '2025-01-01',
     hasExtensionOptions: false,
@@ -98,10 +111,15 @@ export const MOCK_CONTRACTS: ContractData[] = [
     id: 'CNT-2023-001',
     entity: Entity.BRAZIL,
     department: 'Drilling',
+    title: 'Deepwater Rig Support',
+    project: 'Pampo Enchova Redevelopment',
     contractorName: 'DeepSea Solutions',
     contractType: 'CAPEX',
     amount: 12000000,
     currency: 'USD',
+    originalAmount: 60000000,
+    originalCurrency: 'BRL',
+    exchangeRate: 0.20,
     startDate: '2023-11-01',
     endDate: '2026-11-01',
     hasExtensionOptions: true,
@@ -154,10 +172,15 @@ export const MOCK_CONTRACTS: ContractData[] = [
     id: 'CNT-2023-002',
     entity: Entity.CONGO,
     department: 'Logistics',
+    title: 'Routine Transport Services',
+    project: 'Field Operations',
     contractorName: 'Local Transport Co',
     contractType: 'OPEX',
     amount: 800000,
     currency: 'USD',
+    originalAmount: 500000000,
+    originalCurrency: 'XAF',
+    exchangeRate: 0.0016,
     startDate: '2024-01-01',
     endDate: '2024-12-31',
     hasExtensionOptions: false,
@@ -196,30 +219,30 @@ export const MOCK_CONTRACTS: ContractData[] = [
   },
   
   // BRAZIL ADDITIONS (5)
-  createMockContract('CNT-2023-003', Entity.BRAZIL, ContractStatus.APPROVED, 15000000, 'FPSO Maintenance'),
-  createMockContract('CNT-2023-004', Entity.BRAZIL, ContractStatus.SUBMITTED, 8000000, 'Support Vessel Charter'),
-  createMockContract('CNT-2023-005', Entity.BRAZIL, ContractStatus.REJECTED, 2000000, 'Offshore Catering'),
+  createMockContract('CNT-2023-003', Entity.BRAZIL, ContractStatus.APPROVED, 15000000, 'FPSO Maintenance', 'Pampo Enchova'),
+  createMockContract('CNT-2023-004', Entity.BRAZIL, ContractStatus.SUBMITTED, 8000000, 'Support Vessel Charter', 'Offshore Logistics'),
+  createMockContract('CNT-2023-005', Entity.BRAZIL, ContractStatus.REJECTED, 2000000, 'Offshore Catering', 'Pampo Enchova'),
   createMockContract('CNT-2023-006', Entity.BRAZIL, ContractStatus.DRAFT, 500000, 'Waste Management'),
-  createMockContract('CNT-2023-007', Entity.BRAZIL, ContractStatus.PENDING_CEO, 45000000, 'Subsea Tree Installation'),
+  createMockContract('CNT-2023-007', Entity.BRAZIL, ContractStatus.PENDING_CEO, 45000000, 'Subsea Tree Installation', 'Pampo Enchova Revitalization'),
 
   // CONGO ADDITIONS (5)
   createMockContract('CNT-2023-008', Entity.CONGO, ContractStatus.APPROVED, 1200000, 'Road Maintenance'),
-  createMockContract('CNT-2023-009', Entity.CONGO, ContractStatus.PENDING_CEO, 3000000, 'Site Security Services'),
-  createMockContract('CNT-2023-010', Entity.CONGO, ContractStatus.CHANGES_REQUESTED, 5000000, 'Base Camp Construction'),
+  createMockContract('CNT-2023-009', Entity.CONGO, ContractStatus.PENDING_CEO, 3000000, 'Site Security Services', 'Security Upgrade'),
+  createMockContract('CNT-2023-010', Entity.CONGO, ContractStatus.CHANGES_REQUESTED, 5000000, 'Base Camp Construction', 'Moho Bilondo'),
   createMockContract('CNT-2023-011', Entity.CONGO, ContractStatus.SUBMITTED, 800000, 'Diesel Supply'),
   createMockContract('CNT-2023-012', Entity.CONGO, ContractStatus.APPROVED, 600000, 'Medical Services'),
 
   // EQUATORIAL GUINEA ADDITIONS (5)
-  createMockContract('CNT-2023-013', Entity.EQUATORIAL_GUINEA, ContractStatus.PENDING_CEO, 12000000, 'Gas Turbine Overhaul'),
-  createMockContract('CNT-2023-014', Entity.EQUATORIAL_GUINEA, ContractStatus.APPROVED, 1500000, 'Scaffolding Services'),
-  createMockContract('CNT-2023-015', Entity.EQUATORIAL_GUINEA, ContractStatus.SUBMITTED, 900000, 'Paint & Blast'),
+  createMockContract('CNT-2023-013', Entity.EQUATORIAL_GUINEA, ContractStatus.PENDING_CEO, 12000000, 'Gas Turbine Overhaul', 'Zafiro Platform'),
+  createMockContract('CNT-2023-014', Entity.EQUATORIAL_GUINEA, ContractStatus.APPROVED, 1500000, 'Scaffolding Services', 'Zafiro Platform'),
+  createMockContract('CNT-2023-015', Entity.EQUATORIAL_GUINEA, ContractStatus.SUBMITTED, 900000, 'Paint & Blast', 'Jade Platform'),
   createMockContract('CNT-2023-016', Entity.EQUATORIAL_GUINEA, ContractStatus.DRAFT, 300000, 'Valve Supply'),
-  createMockContract('CNT-2023-017', Entity.EQUATORIAL_GUINEA, ContractStatus.REJECTED, 2000000, 'Crane Rental'),
+  createMockContract('CNT-2023-017', Entity.EQUATORIAL_GUINEA, ContractStatus.REJECTED, 2000000, 'Crane Rental', 'Serpentina'),
 
   // LONDON ADDITIONS (5)
-  createMockContract('CNT-2023-018', Entity.LONDON, ContractStatus.PENDING_CEO, 5000000, 'ERP License Renewal'),
-  createMockContract('CNT-2023-019', Entity.LONDON, ContractStatus.APPROVED, 1000000, 'Global Audit Services'),
-  createMockContract('CNT-2023-020', Entity.LONDON, ContractStatus.SUBMITTED, 2000000, 'Legal Counsel Retainer'),
-  createMockContract('CNT-2023-021', Entity.LONDON, ContractStatus.PENDING_CEO, 8000000, 'New Office Lease'),
-  createMockContract('CNT-2023-022', Entity.LONDON, ContractStatus.CHANGES_REQUESTED, 1500000, 'IT Infrastructure Support'),
+  createMockContract('CNT-2023-018', Entity.LONDON, ContractStatus.PENDING_CEO, 5000000, 'ERP License Renewal', 'Corporate IT'),
+  createMockContract('CNT-2023-019', Entity.LONDON, ContractStatus.APPROVED, 1000000, 'Global Audit Services', 'Finance'),
+  createMockContract('CNT-2023-020', Entity.LONDON, ContractStatus.SUBMITTED, 2000000, 'Legal Counsel Retainer', 'Legal'),
+  createMockContract('CNT-2023-021', Entity.LONDON, ContractStatus.PENDING_CEO, 8000000, 'New Office Lease', 'Facilities'),
+  createMockContract('CNT-2023-022', Entity.LONDON, ContractStatus.CHANGES_REQUESTED, 1500000, 'IT Infrastructure Support', 'Corporate IT'),
 ];

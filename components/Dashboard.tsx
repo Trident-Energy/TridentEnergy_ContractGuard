@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState, useEffect } from 'react';
 import { ContractData, ContractStatus, RiskCategory, Entity, User } from '../types';
 import { MOCK_USERS } from '../constants';
@@ -62,6 +63,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ contracts, onViewContract,
       const lower = searchTerm.toLowerCase();
       data = data.filter(c => 
         c.contractorName.toLowerCase().includes(lower) || 
+        (c.title && c.title.toLowerCase().includes(lower)) ||
+        (c.project && c.project.toLowerCase().includes(lower)) ||
         c.id.toLowerCase().includes(lower) ||
         c.scopeOfWork.toLowerCase().includes(lower)
       );
@@ -346,11 +349,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ contracts, onViewContract,
              <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 text-xs uppercase font-semibold">
                <tr>
                  <th className="px-6 py-4">Status</th>
-                 <th className="px-6 py-4">ID</th>
+                 <th className="px-6 py-4">Contract Title</th>
+                 <th className="px-6 py-4">Project</th>
                  <th className="px-6 py-4">Submitter</th>
                  <th className="px-6 py-4">Contractor</th>
                  <th className="px-6 py-4">Entity</th>
-                 <th className="px-6 py-4">Amount</th>
+                 <th className="px-6 py-4">Amount (USD)</th>
                  <th className="px-6 py-4">Role</th>
                  <th 
                   className="px-6 py-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors select-none"
@@ -383,7 +387,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ contracts, onViewContract,
                      </span>
                    </td>
                    <td className="px-6 py-4 text-sm font-medium text-slate-900 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                     {c.id}
+                     {c.title || c.contractorName}
+                   </td>
+                   <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">
+                     {c.project || '-'}
                    </td>
                    <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">
                      {MOCK_USERS.find(u => u.id === c.submitterId)?.name || 'Unknown'}
@@ -436,7 +443,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ contracts, onViewContract,
                )})}
                {paginatedContracts.length === 0 && (
                  <tr>
-                   <td colSpan={11} className="px-6 py-12 text-center text-slate-400 dark:text-slate-500">
+                   <td colSpan={12} className="px-6 py-12 text-center text-slate-400 dark:text-slate-500">
                      No contracts found matching your filters.
                    </td>
                  </tr>

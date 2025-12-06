@@ -4,6 +4,7 @@ import { User, ContractData, Entity, ContractStatus, ContractDocument, RiskCateg
 import { evaluateRisk } from '../utils/riskLogic';
 import { formatEmailBody, triggerEmailNotification } from '../utils/notificationUtils';
 import { refineContractText } from '../services/geminiService';
+import { EXCHANGE_RATES } from '../constants';
 import { Save, ArrowRight, ArrowLeft, AlertTriangle, CheckCircle, Upload, File as FileIcon, X, Lock, FileEdit, Sparkles, Loader2 } from 'lucide-react';
 
 interface NewSubmissionProps {
@@ -30,7 +31,10 @@ export const NewSubmission: React.FC<NewSubmissionProps> = ({ user, initialData,
     status: ContractStatus.SUBMITTED,
     contractType: 'OPEX',
     amount: 0,
-    currency: 'USD', // Hardcoded USD
+    currency: 'USD',
+    originalAmount: 0,
+    originalCurrency: 'USD',
+    exchangeRate: 1.0,
     liabilityCapPercent: 100,
     subcontractingPercent: 0,
     hasExtensionOptions: false,
@@ -45,7 +49,9 @@ export const NewSubmission: React.FC<NewSubmissionProps> = ({ user, initialData,
     ddqNumber: '',
     ddqDate: '',
     ddqValidityDate: '',
-    otherChecksDetails: ''
+    otherChecksDetails: '',
+    title: '',
+    project: ''
   });
 
   const [manualTriggerIds, setManualTriggerIds] = useState<Set<string>>(new Set());
@@ -59,7 +65,12 @@ export const NewSubmission: React.FC<NewSubmissionProps> = ({ user, initialData,
   // Initialize form with existing data if editing
   useEffect(() => {
     if (initialData) {
-      setFormData({ ...initialData, currency: 'USD' }); // Ensure currency is USD
+      setFormData({ 
+        ...initialData,
+        originalAmount: initialData.originalAmount || initialData.amount,
+        originalCurrency: initialData.originalCurrency || 'USD',
+        exchangeRate: initialData.exchangeRate || 1.0
+      }); 
       
       // Re-hydrate manual triggers
       const triggers = initialData.detectedTriggers || [];
@@ -70,9 +81,8 @@ export const NewSubmission: React.FC<NewSubmissionProps> = ({ user, initialData,
       setManualTriggerIds(manualIds);
 
       // Initialize amount display
-      if (initialData.amount) {
-        setAmountDisplay(initialData.amount.toLocaleString('en-US'));
-      }
+      const amt = initialData.originalAmount || initialData.amount || 0;
+      setAmountDisplay(amt.toLocaleString('en-US'));
     }
   }, [initialData]);
 
@@ -103,8 +113,24 @@ export const NewSubmission: React.FC<NewSubmissionProps> = ({ user, initialData,
   const handleNext = () => setStep(prev => Math.min(prev + 1, TABS.length - 1));
   const handleBack = () => setStep(prev => Math.max(prev - 1, 0));
 
-  // Amount Input Logic
-  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Currency & Amount Logic
+  const handleCurrencyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newCurrency = e.target.value;
+    const newRate = EXCHANGE_RATES[newCurrency] || 1.0;
+    const originalAmt = formData.originalAmount || 0;
+    
+    // Auto calculate USD amount
+    const usdAmount = originalAmt * newRate;
+
+    setFormData(prev => ({ 
+      ...prev, 
+      originalCurrency: newCurrency, 
+      exchangeRate: newRate,
+      amount: usdAmount
+    }));
+  };
+
+  const handleOriginalAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     // Remove non-numeric except dot
     const cleanValue = value.replace(/[^0-9.]/g, '');
@@ -112,15 +138,18 @@ export const NewSubmission: React.FC<NewSubmissionProps> = ({ user, initialData,
     setAmountDisplay(cleanValue);
     
     const numberValue = parseFloat(cleanValue);
-    if (!isNaN(numberValue)) {
-      handleChange('amount', numberValue);
-    } else {
-      handleChange('amount', 0);
-    }
+    const validNumber = isNaN(numberValue) ? 0 : numberValue;
+    const rate = formData.exchangeRate || 1.0;
+
+    setFormData(prev => ({ 
+      ...prev, 
+      originalAmount: validNumber,
+      amount: validNumber * rate 
+    }));
   };
 
   const handleAmountBlur = () => {
-    const val = formData.amount || 0;
+    const val = formData.originalAmount || 0;
     setAmountDisplay(val.toLocaleString('en-US', { maximumFractionDigits: 2 }));
   };
 
@@ -192,7 +221,6 @@ export const NewSubmission: React.FC<NewSubmissionProps> = ({ user, initialData,
 
     const finalData = {
       ...formData,
-      currency: 'USD',
       id: formData.id || `CNT-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000)}`,
       submissionDate: formData.submissionDate || Date.now(),
       status: status,
@@ -291,6 +319,20 @@ export const NewSubmission: React.FC<NewSubmissionProps> = ({ user, initialData,
                 <input type="text" className={inputClass} 
                   value={formData.department || ''} onChange={e => handleChange('department', e.target.value)} />
               </div>
+              
+              <div className="col-span-2">
+                <label className={labelClass}>Contract Title</label>
+                <input type="text" placeholder="e.g. Drilling Support Services Campaign 2024" className={inputClass} 
+                  value={formData.title || ''} onChange={e => handleChange('title', e.target.value)} />
+              </div>
+
+              {/* New Project Field */}
+              <div className="col-span-2">
+                 <label className={labelClass}>Project (Optional)</label>
+                 <input type="text" placeholder="e.g. Block G Infill Drilling" className={inputClass}
+                   value={formData.project || ''} onChange={e => handleChange('project', e.target.value)} />
+              </div>
+
               <div className="col-span-2">
                 <label className={labelClass}>Contractor Name</label>
                 <input type="text" className={inputClass} 
@@ -349,33 +391,65 @@ export const NewSubmission: React.FC<NewSubmissionProps> = ({ user, initialData,
                  <p className="text-xs text-slate-500 mt-1">Classification affects risk thresholds (OPEX &gt; 1M, CAPEX &gt; 5M).</p>
               </div>
 
+               {/* Dates - Moved Up */}
                <div>
-                <label className={labelClass}>Contract Amount</label>
-                <div className="relative">
-                  <span className="absolute left-3 top-2 text-slate-500 pointer-events-none">$</span>
-                  <input 
-                    type="text" 
-                    className={`${inputClass} pl-7 pr-12`} 
-                    value={amountDisplay} 
-                    onChange={handleAmountChange}
-                    onBlur={handleAmountBlur}
-                    placeholder="0.00"
-                  />
-                  <span className="absolute right-3 top-2 text-slate-500 font-bold pointer-events-none bg-slate-100 dark:bg-slate-700 px-1 rounded text-xs leading-5">USD</span>
+                <label className={labelClass}>Duration</label>
+                <div className="flex gap-2">
+                   <div className="flex-1">
+                      <input type="date" title="Start Date" className={inputClass} 
+                        value={formData.startDate} onChange={e => handleChange('startDate', e.target.value)} />
+                   </div>
+                   <div className="flex-1">
+                      <input type="date" title="End Date" className={inputClass} 
+                        value={formData.endDate} onChange={e => handleChange('endDate', e.target.value)} />
+                   </div>
                 </div>
-                <p className="text-xs text-slate-500 mt-1">Type values freely. Formats to standard e.g., 1,000,000 on exit.</p>
               </div>
 
-              <div>
-                <label className={labelClass}>Start Date</label>
-                <input type="date" className={inputClass} 
-                  value={formData.startDate} onChange={e => handleChange('startDate', e.target.value)} />
-              </div>
-               <div>
-                <label className={labelClass}>End Date</label>
-                <input type="date" className={inputClass} 
-                  value={formData.endDate} onChange={e => handleChange('endDate', e.target.value)} />
-              </div>
+               {/* Dual Currency Input Section */}
+               <div className="col-span-2 grid grid-cols-2 gap-8 bg-slate-100 dark:bg-slate-700/30 p-4 rounded-lg border border-slate-200 dark:border-slate-600">
+                  <div>
+                    <label className={labelClass}>Contract Amount (Original Currency)</label>
+                    <div className="flex gap-2">
+                       <select 
+                          className={`${inputClass} w-24`}
+                          value={formData.originalCurrency || 'USD'}
+                          onChange={handleCurrencyChange}
+                       >
+                         {Object.keys(EXCHANGE_RATES).map(curr => (
+                           <option key={curr} value={curr}>{curr}</option>
+                         ))}
+                       </select>
+                       <div className="relative flex-1">
+                          <input 
+                            type="text" 
+                            className={inputClass} 
+                            value={amountDisplay} 
+                            onChange={handleOriginalAmountChange}
+                            onBlur={handleAmountBlur}
+                            placeholder="0.00"
+                          />
+                       </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className={labelClass}>USD Equivalent (Auto-Calculated)</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-3 text-slate-500 pointer-events-none">$</span>
+                      <input 
+                        type="text" 
+                        disabled
+                        className={`${inputClass} pl-7 pr-12 bg-slate-200 dark:bg-slate-800 cursor-not-allowed font-mono font-bold`} 
+                        value={formData.amount?.toLocaleString('en-US', { maximumFractionDigits: 2 }) || '0.00'} 
+                      />
+                      <span className="absolute right-3 top-3 text-slate-500 font-bold pointer-events-none text-xs">USD</span>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Exchange Rate: 1 {formData.originalCurrency} = {formData.exchangeRate} USD
+                    </p>
+                  </div>
+               </div>
               
               <div className="col-span-2">
                 <div className="flex justify-between items-center mb-1">
@@ -636,11 +710,25 @@ export const NewSubmission: React.FC<NewSubmissionProps> = ({ user, initialData,
               <h4 className="font-bold text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4">Summary</h4>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div className="flex flex-col">
+                    <span className="text-slate-500 dark:text-slate-400">Contract Title</span> 
+                    <span className="font-medium text-slate-900 dark:text-white text-lg">{formData.title}</span>
+                </div>
+                {formData.project && (
+                   <div className="flex flex-col">
+                      <span className="text-slate-500 dark:text-slate-400">Project</span> 
+                      <span className="font-medium text-slate-900 dark:text-white text-lg">{formData.project}</span>
+                   </div>
+                )}
+                <div className="flex flex-col">
                     <span className="text-slate-500 dark:text-slate-400">Contractor</span> 
                     <span className="font-medium text-slate-900 dark:text-white text-lg">{formData.contractorName}</span>
                 </div>
                 <div className="flex flex-col">
-                    <span className="text-slate-500 dark:text-slate-400">Amount & Type</span> 
+                    <span className="text-slate-500 dark:text-slate-400">Value (Original)</span> 
+                    <span className="font-medium text-slate-900 dark:text-white text-lg">{formData.originalAmount?.toLocaleString()} {formData.originalCurrency}</span>
+                </div>
+                <div className="flex flex-col">
+                    <span className="text-slate-500 dark:text-slate-400">Value (USD Eqv)</span> 
                     <span className="font-medium text-slate-900 dark:text-white text-lg">${formData.amount?.toLocaleString()} ({formData.contractType})</span>
                 </div>
                 <div className="flex flex-col">
