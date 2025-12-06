@@ -66,6 +66,7 @@ export interface Comment {
   role: UserRole;
   text: string;
   timestamp: number;
+  likes?: string[]; // Array of User IDs who liked the comment
 }
 
 export interface ContractReview {

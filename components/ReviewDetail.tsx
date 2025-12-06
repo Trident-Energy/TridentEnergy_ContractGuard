@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { ContractData, User, UserRole, ContractStatus, ContractDocument, Comment } from '../types';
 import { analyzeContractRisks } from '../services/geminiService';
 import { MOCK_USERS } from '../constants';
 import { formatEmailBody, triggerEmailNotification } from '../utils/notificationUtils';
-import { CheckCircle, XCircle, FileText, Download, MessageSquare, Bot, AlertTriangle, Upload, Send, History, Clock, AlertCircle, Save, RotateCcw, X, ShieldCheck, Edit3, ArrowUpCircle, UserPlus, Users } from 'lucide-react';
+import { CheckCircle, XCircle, FileText, Download, MessageSquare, Bot, AlertTriangle, Upload, Send, History, Clock, AlertCircle, Save, RotateCcw, X, ShieldCheck, Edit3, ArrowUpCircle, UserPlus, Users, Briefcase, Calendar, DollarSign, Building, ThumbsUp } from 'lucide-react';
 
 interface ReviewDetailProps {
   contract: ContractData;
@@ -287,7 +286,8 @@ export const ReviewDetail: React.FC<ReviewDetailProps> = ({ contract, currentUse
       userName: currentUser.name,
       role: currentUser.role,
       text: newComment,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      likes: []
     };
     
     updated.comments = [...(updated.comments || []), comment];
@@ -303,6 +303,26 @@ export const ReviewDetail: React.FC<ReviewDetailProps> = ({ contract, currentUse
 
     onUpdate(updated);
     setNewComment('');
+  };
+
+  const handleLikeComment = (commentId: string) => {
+    const updated = { ...contract };
+    const commentIndex = updated.comments.findIndex(c => c.id === commentId);
+    if (commentIndex === -1) return;
+
+    const comment = updated.comments[commentIndex];
+    const likes = comment.likes || [];
+    
+    if (likes.includes(currentUser.id)) {
+      // Unlike
+      comment.likes = likes.filter(id => id !== currentUser.id);
+    } else {
+      // Like
+      comment.likes = [...likes, currentUser.id];
+    }
+    
+    updated.comments[commentIndex] = comment;
+    onUpdate(updated);
   };
 
   const handleRunAI = async () => {
@@ -448,40 +468,166 @@ export const ReviewDetail: React.FC<ReviewDetailProps> = ({ contract, currentUse
             
             {activeTab === 'Overview' && (
               <div className="space-y-6 animate-fade-in">
-                 {/* Key Data Grid */}
-                <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                  <DataCard label="Submitted By" value={MOCK_USERS.find(u => u.id === contract.submitterId)?.name || 'Unknown'} />
-                  <DataCard label="Type" value={contract.contractType || 'N/A'} />
-                  <DataCard label="Project" value={contract.project || 'N/A'} />
-                  <div className="p-3 border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-800">
-                    <span className="block text-xs text-slate-500 dark:text-slate-400 uppercase font-semibold">Value</span>
-                    <span className="font-bold text-base text-slate-900 dark:text-white truncate block" title="USD Equivalent">
-                      ${contract.amount.toLocaleString()} <span className="text-xs font-normal text-slate-500">USD</span>
-                    </span>
-                    {(contract.originalCurrency && contract.originalCurrency !== 'USD') && (
-                       <span className="text-xs text-slate-500 block truncate">
-                         {contract.originalAmount?.toLocaleString()} {contract.originalCurrency}
-                       </span>
-                    )}
-                  </div>
-                  <DataCard label="Department" value={contract.department} />
-                  <DataCard label="Review Status" value={contract.status} />
-                </section>
+                 
+                 {/* Top Hero Section: Title & Project */}
+                 <div className="bg-slate-50 dark:bg-slate-900/30 p-6 rounded-lg border-l-4 border-blue-600 dark:border-blue-500 shadow-sm">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Contract Title</h4>
+                        <h1 className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">{contract.title}</h1>
+                        {contract.project && (
+                           <div className="flex items-center gap-2 mt-2 text-slate-600 dark:text-slate-300">
+                              <Briefcase size={16} className="text-blue-500" />
+                              <span className="font-medium">{contract.project}</span>
+                           </div>
+                        )}
+                      </div>
+                      <div className="bg-white dark:bg-slate-800 p-3 rounded border border-slate-200 dark:border-slate-700 shadow-sm min-w-[150px]">
+                         <p className="text-xs font-bold text-slate-400 uppercase mb-1">Total Value (USD)</p>
+                         <p className="text-xl font-bold text-green-600 dark:text-green-400">${contract.amount.toLocaleString()}</p>
+                         <p className="text-[10px] text-slate-400">{contract.contractType}</p>
+                      </div>
+                    </div>
+                 </div>
 
-                <section>
-                  <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase mb-2">Executive Summary</h3>
-                  <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
-                    <p className="text-slate-700 dark:text-slate-300 mb-2"><span className="font-semibold">Background:</span> {contract.backgroundNeed}</p>
-                    <p className="text-slate-700 dark:text-slate-300"><span className="font-semibold">Scope:</span> {contract.scopeOfWork}</p>
-                  </div>
-                </section>
+                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    
+                    {/* Left Column: Financials & Parties */}
+                    <div className="space-y-6">
+                       {/* Financial Details Card */}
+                       <div className="bg-white dark:bg-slate-800 border border-emerald-100 dark:border-emerald-900/30 rounded-lg shadow-sm overflow-hidden">
+                          <div className="bg-emerald-50 dark:bg-emerald-900/20 px-4 py-3 border-b border-emerald-100 dark:border-emerald-900/30 flex items-center gap-2">
+                             <DollarSign size={18} className="text-emerald-600 dark:text-emerald-400" />
+                             <h3 className="font-bold text-emerald-800 dark:text-emerald-300">Financial Overview</h3>
+                          </div>
+                          <div className="p-4 grid grid-cols-2 gap-4">
+                             <div>
+                               <p className="text-xs text-slate-500 dark:text-slate-400 uppercase">Original Amount</p>
+                               <p className="font-medium text-slate-900 dark:text-white text-lg">
+                                  {contract.originalAmount?.toLocaleString()} <span className="text-sm font-normal text-slate-500">{contract.originalCurrency}</span>
+                               </p>
+                             </div>
+                             <div>
+                               <p className="text-xs text-slate-500 dark:text-slate-400 uppercase">USD Equivalent</p>
+                               <p className="font-medium text-slate-900 dark:text-white text-lg">
+                                  ${contract.amount.toLocaleString()}
+                               </p>
+                             </div>
+                             <div>
+                               <p className="text-xs text-slate-500 dark:text-slate-400 uppercase">Type</p>
+                               <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${contract.contractType === 'CAPEX' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>
+                                 {contract.contractType}
+                               </span>
+                             </div>
+                             <div>
+                               <p className="text-xs text-slate-500 dark:text-slate-400 uppercase">Pricing Structure</p>
+                               <p className="font-medium text-slate-900 dark:text-white text-sm">{contract.priceStructure}</p>
+                             </div>
+                          </div>
+                       </div>
 
-                <section>
-                   <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase mb-2 flex items-center gap-2">
+                       {/* Parties Card */}
+                       <div className="bg-white dark:bg-slate-800 border border-indigo-100 dark:border-indigo-900/30 rounded-lg shadow-sm overflow-hidden">
+                          <div className="bg-indigo-50 dark:bg-indigo-900/20 px-4 py-3 border-b border-indigo-100 dark:border-indigo-900/30 flex items-center gap-2">
+                             <Building size={18} className="text-indigo-600 dark:text-indigo-400" />
+                             <h3 className="font-bold text-indigo-800 dark:text-indigo-300">Involved Parties</h3>
+                          </div>
+                          <div className="p-4 space-y-3">
+                             <div className="flex justify-between border-b border-slate-100 dark:border-slate-700/50 pb-2">
+                               <span className="text-sm text-slate-500 dark:text-slate-400">Contractor</span>
+                               <span className="font-medium text-slate-900 dark:text-white text-right">{contract.contractorName}</span>
+                             </div>
+                             <div className="flex justify-between border-b border-slate-100 dark:border-slate-700/50 pb-2">
+                               <span className="text-sm text-slate-500 dark:text-slate-400">Entity</span>
+                               <span className="font-medium text-slate-900 dark:text-white text-right">{contract.entity}</span>
+                             </div>
+                             <div className="flex justify-between border-b border-slate-100 dark:border-slate-700/50 pb-2">
+                               <span className="text-sm text-slate-500 dark:text-slate-400">Department</span>
+                               <span className="font-medium text-slate-900 dark:text-white text-right">{contract.department}</span>
+                             </div>
+                             <div className="flex justify-between">
+                               <span className="text-sm text-slate-500 dark:text-slate-400">Submitter</span>
+                               <span className="font-medium text-slate-900 dark:text-white text-right">{MOCK_USERS.find(u => u.id === contract.submitterId)?.name || 'Unknown'}</span>
+                             </div>
+                          </div>
+                       </div>
+                    </div>
+
+                    {/* Right Column: Timeline, Summary & Docs */}
+                    <div className="space-y-6">
+                        {/* Timeline Card */}
+                        <div className="bg-white dark:bg-slate-800 border border-purple-100 dark:border-purple-900/30 rounded-lg shadow-sm overflow-hidden">
+                          <div className="bg-purple-50 dark:bg-purple-900/20 px-4 py-3 border-b border-purple-100 dark:border-purple-900/30 flex items-center gap-2">
+                             <Calendar size={18} className="text-purple-600 dark:text-purple-400" />
+                             <h3 className="font-bold text-purple-800 dark:text-purple-300">Duration & Timeline</h3>
+                          </div>
+                          <div className="p-4 grid grid-cols-2 gap-4">
+                             <div>
+                               <p className="text-xs text-slate-500 dark:text-slate-400 uppercase">Start Date</p>
+                               <p className="font-medium text-slate-900 dark:text-white">{contract.startDate}</p>
+                             </div>
+                             <div>
+                               <p className="text-xs text-slate-500 dark:text-slate-400 uppercase">End Date</p>
+                               <p className="font-medium text-slate-900 dark:text-white">{contract.endDate}</p>
+                             </div>
+                             <div className="col-span-2 flex items-center gap-2 mt-1">
+                                <span className={`w-2 h-2 rounded-full ${contract.hasExtensionOptions ? 'bg-blue-500' : 'bg-slate-300'}`}></span>
+                                <span className="text-sm text-slate-600 dark:text-slate-300">
+                                   {contract.hasExtensionOptions ? 'Extension Options Available' : 'No Extension Options'}
+                                </span>
+                             </div>
+                          </div>
+                       </div>
+
+                       {/* Executive Summary Card (Redesigned) */}
+                       <div className="bg-white dark:bg-slate-800 border border-cyan-100 dark:border-cyan-900/30 rounded-lg shadow-sm overflow-hidden">
+                          <div className="bg-cyan-50 dark:bg-cyan-900/20 px-4 py-3 border-b border-cyan-100 dark:border-cyan-900/30 flex items-center gap-2">
+                             <FileText size={18} className="text-cyan-600 dark:text-cyan-400" />
+                             <h3 className="font-bold text-cyan-800 dark:text-cyan-300">Executive Summary</h3>
+                          </div>
+                          <div className="p-4 space-y-4">
+                             <div>
+                               <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-2">Background & Need</h4>
+                               <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-900/50 p-3 rounded border border-slate-100 dark:border-slate-800">
+                                 {contract.backgroundNeed}
+                               </p>
+                             </div>
+                             <div>
+                               <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-2">Scope of Work</h4>
+                               <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-900/50 p-3 rounded border border-slate-100 dark:border-slate-800 max-h-40 overflow-y-auto custom-scrollbar">
+                                 {contract.scopeOfWork}
+                               </p>
+                             </div>
+                          </div>
+                       </div>
+
+                       {/* Quick Docs Link */}
+                       {contract.documents && contract.documents.length > 0 && (
+                          <button 
+                            onClick={() => setActiveTab('Documents')}
+                            className="w-full flex items-center justify-between p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                          >
+                             <div className="flex items-center gap-3">
+                                <FileText size={20} className="text-blue-500" />
+                                <div className="text-left">
+                                   <p className="font-bold text-slate-800 dark:text-white text-sm">Contract Documents</p>
+                                   <p className="text-xs text-slate-500">{contract.documents.length} files attached</p>
+                                </div>
+                             </div>
+                             <div className="bg-slate-100 dark:bg-slate-700 rounded-full p-1 text-slate-500">
+                                <ArrowUpCircle className="rotate-90" size={16} />
+                             </div>
+                          </button>
+                       )}
+                    </div>
+                 </div>
+
+                 <section>
+                   <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase mb-2 flex items-center gap-2 mt-4">
                      <ShieldCheck size={16}/> Vendor Qualification
                    </h3>
                    <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                        <p className="text-slate-700 dark:text-slate-300">
                          <span className="font-semibold text-slate-900 dark:text-white">DDQ Number:</span> {contract.ddqNumber || 'N/A'}
                        </p>
@@ -492,40 +638,8 @@ export const ReviewDetail: React.FC<ReviewDetailProps> = ({ contract, currentUse
                          <span className="font-semibold text-slate-900 dark:text-white">Valid Until:</span> {contract.ddqValidityDate || 'N/A'}
                        </p>
                      </div>
-                     {contract.otherChecksDetails && (
-                       <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700">
-                         <span className="font-semibold text-slate-900 dark:text-white text-sm block mb-1">Other Checks:</span>
-                         <p className="text-slate-600 dark:text-slate-400 text-sm">{contract.otherChecksDetails}</p>
-                       </div>
-                     )}
                    </div>
                 </section>
-                
-                <div className="flex gap-4">
-                  <div 
-                    className="flex-1 p-4 bg-blue-50 dark:bg-blue-900/10 rounded-lg border border-blue-100 dark:border-blue-800 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/20 transition-colors"
-                    onClick={() => setActiveTab('Comments')}
-                  >
-                     <div className="flex items-center gap-2 mb-2 text-blue-800 dark:text-blue-300 font-bold">
-                        <MessageSquare size={16} /> Latest Comments
-                     </div>
-                     {contract.comments && contract.comments.length > 0 ? (
-                       <p className="text-sm text-slate-600 dark:text-slate-400 italic line-clamp-2">"{contract.comments[contract.comments.length -1].text}" - {contract.comments[contract.comments.length -1].userName}</p>
-                     ) : (
-                       <p className="text-sm text-slate-500 italic">No comments yet. Click to add one.</p>
-                     )}
-                  </div>
-                  <div className="flex-1 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
-                     <div className="flex items-center gap-2 mb-2 text-slate-800 dark:text-slate-300 font-bold">
-                        <History size={16} /> Last Activity
-                     </div>
-                     {contract.auditTrail && contract.auditTrail.length > 0 ? (
-                        <p className="text-sm text-slate-600 dark:text-slate-400">{contract.auditTrail[contract.auditTrail.length-1].action} by {contract.auditTrail[contract.auditTrail.length-1].userName} ({new Date(contract.auditTrail[contract.auditTrail.length-1].timestamp).toLocaleDateString()})</p>
-                     ) : (
-                        <p className="text-sm text-slate-500 italic">No activity recorded.</p>
-                     )}
-                  </div>
-                </div>
               </div>
             )}
 
@@ -707,6 +821,9 @@ export const ReviewDetail: React.FC<ReviewDetailProps> = ({ contract, currentUse
                     {contract.comments && contract.comments.length > 0 ? (
                       contract.comments.sort((a,b) => a.timestamp - b.timestamp).map((c, i) => {
                         const isMe = c.userId === currentUser.id;
+                        const likeCount = c.likes?.length || 0;
+                        const isLikedByMe = c.likes?.includes(currentUser.id);
+                        
                         return (
                           <div key={i} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                             <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} max-w-[80%]`}>
@@ -714,12 +831,28 @@ export const ReviewDetail: React.FC<ReviewDetailProps> = ({ contract, currentUse
                                 <span className="font-bold text-xs text-slate-600 dark:text-slate-400">{c.userName}</span>
                                 <span className="text-[10px] text-slate-400">{new Date(c.timestamp).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</span>
                               </div>
-                              <div className={`rounded-xl px-4 py-2 text-sm shadow-sm ${
+                              <div className={`rounded-xl px-4 py-3 text-sm shadow-sm relative group ${
                                 isMe 
                                   ? 'bg-blue-600 text-white rounded-tr-none' 
                                   : 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-tl-none border border-slate-200 dark:border-slate-600'
                               }`}>
-                                <p className="leading-relaxed">{c.text}</p>
+                                <p className="leading-relaxed whitespace-pre-wrap">{c.text}</p>
+                                
+                                {/* Thumbs Up / Acknowledge */}
+                                <div className={`absolute -bottom-3 ${isMe ? 'left-0' : 'right-0'} flex items-center`}>
+                                   <button 
+                                     onClick={() => handleLikeComment(c.id)}
+                                     className={`p-1 rounded-full shadow-sm border text-[10px] flex items-center gap-1 transition-all hover:scale-110 ${
+                                       isLikedByMe 
+                                        ? 'bg-blue-100 border-blue-200 text-blue-600 dark:bg-blue-900 dark:border-blue-800 dark:text-blue-300' 
+                                        : 'bg-white border-slate-200 text-slate-500 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
+                                     }`}
+                                     title="Acknowledge"
+                                   >
+                                     <ThumbsUp size={10} fill={isLikedByMe ? "currentColor" : "none"} />
+                                     {likeCount > 0 && <span className="font-bold">{likeCount}</span>}
+                                   </button>
+                                </div>
                               </div>
                             </div>
                           </div>
