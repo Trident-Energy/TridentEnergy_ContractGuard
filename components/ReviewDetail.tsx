@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { ContractData, User, UserRole, ContractStatus, ContractDocument, Comment } from '../types';
 import { analyzeContractRisks } from '../services/geminiService';
 import { MOCK_USERS } from '../constants';
 import { formatEmailBody, triggerEmailNotification } from '../utils/notificationUtils';
-import { CheckCircle, XCircle, FileText, Download, MessageSquare, Bot, AlertTriangle, Upload, Send, History, Clock, AlertCircle, Save, RotateCcw, X, ShieldCheck, Edit3, ArrowUpCircle, UserPlus, Users, Briefcase, Calendar, DollarSign, Building, ThumbsUp } from 'lucide-react';
+import { CheckCircle, XCircle, FileText, Download, MessageSquare, Bot, AlertTriangle, Upload, Send, Clock, AlertCircle, Save, RotateCcw, X, ShieldCheck, Edit3, ArrowUpCircle, UserPlus, Users, Briefcase, Calendar, DollarSign, Building, ThumbsUp } from 'lucide-react';
 
 interface ReviewDetailProps {
   contract: ContractData;
@@ -1167,13 +1168,6 @@ export const ReviewDetail: React.FC<ReviewDetailProps> = ({ contract, currentUse
     </div>
   );
 };
-
-const DataCard = ({ label, value }: { label: string, value: string }) => (
-  <div className="p-3 border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-800">
-    <span className="block text-xs text-slate-500 dark:text-slate-400 uppercase font-semibold">{label}</span>
-    <span className="font-bold text-base text-slate-900 dark:text-white truncate block" title={value}>{value}</span>
-  </div>
-);
 
 const FieldSection = ({ title, content }: { title: string, content?: string }) => (
   <div>
