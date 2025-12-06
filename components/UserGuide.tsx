@@ -180,7 +180,7 @@ export const UserGuide: React.FC = () => {
                     </p>
                     <ul className="list-disc pl-5 mt-2 space-y-1 text-sm text-slate-600 dark:text-slate-400">
                       <li><strong>Liability Cap:</strong> If less than 100%, it triggers a risk flag.</li>
-                      <li><strong>Subcontracting:</strong> If >30%, it triggers a risk flag.</li>
+                      <li><strong>Subcontracting:</strong> If &gt;30%, it triggers a risk flag.</li>
                       <li><strong>Manual Checklist:</strong> Select applicable risks (e.g., "Work in Conflict Zone").</li>
                     </ul>
                   </div>
@@ -202,7 +202,7 @@ export const UserGuide: React.FC = () => {
                     <h4 className="font-bold text-slate-800 dark:text-white">Pre-Submission Check</h4>
                     <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
                       The system runs a final validation. It will tell you if the contract is <strong>Standard</strong> or <strong>High Risk</strong>.
-                      If High Risk, it will explicitly list the reasons (e.g., "CAPEX > USD 5M").
+                      If High Risk, it will explicitly list the reasons (e.g., "CAPEX &gt; USD 5M").
                     </p>
                   </div>
                 </div>
