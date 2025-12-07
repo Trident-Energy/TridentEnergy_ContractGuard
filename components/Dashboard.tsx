@@ -3,7 +3,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { ContractData, ContractStatus, Entity, User } from '../types';
 import { MOCK_USERS } from '../constants';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
-import { AlertCircle, CheckCircle, Clock, DollarSign, Search, Filter, ArrowRight, MessageSquare, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Paperclip, UserCheck, Briefcase, Layers, XCircle, User as UserIcon } from 'lucide-react';
+import { AlertCircle, CheckCircle, Clock, DollarSign, Search, Filter, ArrowRight, MessageSquare, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Paperclip, UserCheck, Briefcase, Layers, XCircle, User as UserIcon, Activity, Timer, X } from 'lucide-react';
 
 interface DashboardProps {
   contracts: ContractData[];
@@ -43,6 +43,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ contracts, onViewContract,
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(25);
+
+  // Modal State
+  const [showAuditModal, setShowAuditModal] = useState(false);
 
   // Compute available departments based on selected Entity (to avoid showing empty filters)
   const availableDepartments = useMemo(() => {
@@ -177,6 +180,23 @@ export const Dashboard: React.FC<DashboardProps> = ({ contracts, onViewContract,
     return { pending, totalValue, highRisk, avgDays, statusData, spendData };
   }, [kpiBaseContracts]);
 
+  // Aggregate Recent Activity (All and Slice)
+  const allActivities = useMemo(() => {
+    const activities = contracts.flatMap(c => 
+      c.auditTrail.map(log => ({
+        ...log,
+        contractId: c.id,
+        contractTitle: c.contractorName,
+        contractStatus: c.status
+      }))
+    );
+    return activities.sort((a, b) => b.timestamp - a.timestamp);
+  }, [contracts]);
+
+  const recentActivity = useMemo(() => {
+    return allActivities.slice(0, 5);
+  }, [allActivities]);
+
   const FlagButton = ({ label, flagUrl }: { label: string, flagUrl: string }) => (
     <button 
       onClick={() => {
@@ -221,6 +241,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ contracts, onViewContract,
       default:
         return 'bg-slate-100 text-slate-800';
     }
+  };
+
+  const getAgeBadge = (date: number) => {
+    const days = Math.floor((Date.now() - date) / (1000 * 60 * 60 * 24));
+    if (days < 3) return { text: `${days}d`, class: 'text-green-600 bg-green-50 border-green-200' };
+    if (days < 7) return { text: `${days}d`, class: 'text-yellow-600 bg-yellow-50 border-yellow-200' };
+    return { text: `${days}d`, class: 'text-red-600 bg-red-50 border-red-200 font-bold' };
   };
 
   const toggleSortOrder = () => {
@@ -303,69 +330,117 @@ export const Dashboard: React.FC<DashboardProps> = ({ contracts, onViewContract,
         />
       </div>
 
-      {/* 3. Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-          <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-4">Contract Status Distribution</h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={metrics.statusData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                  stroke="none"
-                  onClick={(data) => {
-                    setSelectedStatus(data.name);
-                    setIsHighRiskFilter(false);
-                  }}
-                  cursor="pointer"
-                >
-                  {metrics.statusData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.name] || '#94a3b8'} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#fff' }} 
-                  itemStyle={{ color: '#fff' }}
-                />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+        {/* 3. Charts - Spans 3 columns */}
+        <div className="xl:col-span-3 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+            <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-4">Contract Status Distribution</h3>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={metrics.statusData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                    stroke="none"
+                    onClick={(data) => {
+                      setSelectedStatus(data.name);
+                      setIsHighRiskFilter(false);
+                    }}
+                    cursor="pointer"
+                  >
+                    {metrics.statusData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.name] || '#94a3b8'} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#fff' }} 
+                    itemStyle={{ color: '#fff' }}
+                  />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+            <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-4">Total Contract Value by Entity</h3>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={metrics.spendData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.2} vertical={false} />
+                  <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis 
+                    stroke="#94a3b8" 
+                    fontSize={12} 
+                    tickFormatter={(val) => `$${(val / 1000000).toFixed(0)}M`}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <Tooltip 
+                    cursor={{fill: 'rgba(255, 255, 255, 0.05)'}}
+                    contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#fff' }}
+                    formatter={(value: number) => [`$${value.toLocaleString()}`, 'Total Value']}
+                  />
+                  <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </div>
-
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-          <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-4">Total Contract Value by Entity</h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={metrics.spendData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.2} vertical={false} />
-                <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis 
-                  stroke="#94a3b8" 
-                  fontSize={12} 
-                  tickFormatter={(val) => `$${(val / 1000000).toFixed(0)}M`}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <Tooltip 
-                  cursor={{fill: 'rgba(255, 255, 255, 0.05)'}}
-                  contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#fff' }}
-                  formatter={(value: number) => [`$${value.toLocaleString()}`, 'Total Value']}
-                />
-                <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+        
+        {/* 4. Recent Activity Feed - Spans 1 column */}
+        <div className="xl:col-span-1 bg-white dark:bg-slate-800 p-0 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col h-full max-h-[400px] xl:max-h-none">
+           <div className="p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex items-center justify-between">
+              <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                <Activity size={18} className="text-blue-500" /> Recent Activity
+              </h3>
+           </div>
+           <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {recentActivity.length > 0 ? recentActivity.map((log, i) => (
+                <div key={i} className="flex gap-3 relative pb-4 border-b border-slate-100 dark:border-slate-700/50 last:border-0 last:pb-0">
+                   <div className="mt-1">
+                      <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-300">
+                        {log.userName.charAt(0)}
+                      </div>
+                   </div>
+                   <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-slate-800 dark:text-white truncate">
+                         {log.action}
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 truncate mb-1">
+                         {log.contractTitle}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                          {new Date(log.timestamp).toLocaleDateString()}
+                        </span>
+                        <span className="text-[10px] text-slate-400">
+                          by {log.userName}
+                        </span>
+                      </div>
+                   </div>
+                </div>
+              )) : (
+                <p className="text-sm text-slate-500 text-center py-4">No recent activity</p>
+              )}
+           </div>
+           <div className="p-3 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/30 text-center">
+              <button 
+                onClick={() => setShowAuditModal(true)}
+                className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                View Full Audit Log
+              </button>
+           </div>
         </div>
       </div>
 
-      {/* 4. Contract Register Grid */}
+      {/* 5. Contract Register Grid */}
       <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
          <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-slate-50 dark:bg-slate-800/50">
            
@@ -491,7 +566,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ contracts, onViewContract,
                   onClick={toggleSortOrder}
                  >
                    <div className="flex items-center gap-1">
-                     Date
+                     Aging
                      {sortOrder === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />}
                    </div>
                  </th>
@@ -505,6 +580,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ contracts, onViewContract,
              <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                {paginatedContracts.map(c => {
                  const isAdHoc = c.adHocReviewers?.some(r => r.userId === currentUser.id);
+                 const age = getAgeBadge(c.submissionDate || Date.now());
                  return (
                  <tr 
                     key={c.id} 
@@ -555,7 +631,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ contracts, onViewContract,
                      </div>
                    </td>
                    <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300 font-mono">${c.amount.toLocaleString()}</td>
-                   <td className="px-6 py-4 text-sm text-slate-500 dark:text-slate-400">{new Date(c.submissionDate || Date.now()).toLocaleDateString()}</td>
+                   <td className="px-6 py-4 text-sm">
+                      <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded border ${age.class}`}>
+                        <Timer size={10} /> {age.text}
+                      </span>
+                   </td>
                    <td className="px-6 py-4 text-center">
                      {c.documents && c.documents.length > 0 && (
                        <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400" title={`${c.documents.length} file(s) attached`}>
@@ -634,6 +714,57 @@ export const Dashboard: React.FC<DashboardProps> = ({ contracts, onViewContract,
             </div>
          </div>
       </div>
+
+      {/* Full Audit Log Modal */}
+      {showAuditModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-3xl max-h-[80vh] flex flex-col overflow-hidden border border-slate-200 dark:border-slate-700">
+            <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-900/50">
+              <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
+                <Activity size={20} className="text-blue-500" /> Full Audit Log
+              </h3>
+              <button 
+                onClick={() => setShowAuditModal(false)}
+                className="p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="overflow-y-auto p-0">
+              <table className="w-full text-left border-collapse text-sm">
+                 <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 sticky top-0 z-10">
+                   <tr>
+                     <th className="px-6 py-3 font-semibold">Time</th>
+                     <th className="px-6 py-3 font-semibold">User</th>
+                     <th className="px-6 py-3 font-semibold">Action</th>
+                     <th className="px-6 py-3 font-semibold">Contract</th>
+                   </tr>
+                 </thead>
+                 <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                   {allActivities.map((log, i) => (
+                     <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                       <td className="px-6 py-3 text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                         {new Date(log.timestamp).toLocaleString()}
+                       </td>
+                       <td className="px-6 py-3 font-medium text-slate-900 dark:text-white">
+                         {log.userName}
+                       </td>
+                       <td className="px-6 py-3 text-slate-600 dark:text-slate-300">
+                         {log.action}
+                         {log.details && <div className="text-xs text-slate-400 mt-0.5">{log.details}</div>}
+                       </td>
+                       <td className="px-6 py-3 text-blue-600 dark:text-blue-400 font-medium">
+                         {log.contractTitle}
+                       </td>
+                     </tr>
+                   ))}
+                 </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { ContractData, User, UserRole, ContractStatus, ContractDocument, Comment } from '../types';
-import { analyzeContractRisks } from '../services/geminiService';
+import { analyzeContractRisks, sendContractQuery, ChatMessage } from '../services/geminiService';
 import { MOCK_USERS } from '../constants';
 import { formatEmailBody, triggerEmailNotification } from '../utils/notificationUtils';
-import { CheckCircle, XCircle, FileText, Download, MessageSquare, Bot, AlertTriangle, Upload, Send, Clock, AlertCircle, Save, RotateCcw, X, ShieldCheck, Edit3, ArrowUpCircle, UserPlus, Users, Briefcase, Calendar, DollarSign, Building, ThumbsUp } from 'lucide-react';
+import { CheckCircle, XCircle, FileText, Download, MessageSquare, Bot, AlertTriangle, Upload, Send, Clock, AlertCircle, Save, RotateCcw, X, ShieldCheck, Edit3, ArrowUpCircle, UserPlus, Users, Briefcase, Calendar, DollarSign, Building, ThumbsUp, Sparkles, HelpCircle } from 'lucide-react';
 
 interface ReviewDetailProps {
   contract: ContractData;
@@ -14,7 +14,7 @@ interface ReviewDetailProps {
   onEdit: () => void;
 }
 
-const TABS = ['Overview', 'Scope & Eval', 'Legal & Risk', 'Documents', 'Comments', 'Approvals', 'Audit Trail'];
+const TABS = ['Overview', 'Scope & Eval', 'Legal & Risk', 'AI Chat', 'Documents', 'Comments', 'Approvals', 'Audit Trail'];
 
 export const ReviewDetail: React.FC<ReviewDetailProps> = ({ contract, currentUser, onUpdate, onClose, onEdit }) => {
   const [activeTab, setActiveTab] = useState('Overview');
@@ -25,6 +25,12 @@ export const ReviewDetail: React.FC<ReviewDetailProps> = ({ contract, currentUse
   
   // Local state for AI Analysis draft
   const [aiOutput, setAiOutput] = useState(contract.aiRiskAnalysis || '');
+  
+  // AI Chat State
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [isChatLoading, setIsChatLoading] = useState(false);
+  const chatBottomRef = useRef<HTMLDivElement>(null);
   
   const commentsEndRef = useRef<HTMLDivElement>(null);
 
@@ -59,6 +65,13 @@ export const ReviewDetail: React.FC<ReviewDetailProps> = ({ contract, currentUse
       commentsEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [activeTab, contract.comments]);
+
+  // Auto-scroll chat
+  useEffect(() => {
+    if (activeTab === 'AI Chat' && chatBottomRef.current) {
+      chatBottomRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatMessages, activeTab]);
 
   const getStatusStyles = (status: ContractStatus) => {
     switch (status) {
@@ -345,31 +358,71 @@ export const ReviewDetail: React.FC<ReviewDetailProps> = ({ contract, currentUse
     onUpdate(updated);
   };
 
+  const handleSendChatMessage = async (overrideText?: string) => {
+    const textToSend = overrideText || chatInput;
+    if (!textToSend.trim() || isChatLoading) return;
+
+    const newUserMessage: ChatMessage = { role: 'user', text: textToSend };
+    
+    // Optimistic update
+    setChatMessages(prev => [...prev, newUserMessage]);
+    setChatInput('');
+    setIsChatLoading(true);
+
+    // Call API
+    const responseText = await sendContractQuery(contract, chatMessages, textToSend);
+    
+    setChatMessages(prev => [...prev, { role: 'model', text: responseText }]);
+    setIsChatLoading(false);
+  };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
-      const newDoc: ContractDocument = {
-        id: Math.random().toString(),
-        name: file.name,
-        type: file.type,
-        size: file.size,
-        uploadDate: Date.now()
-      };
-      
-      const updated = { 
-        ...contract, 
-        documents: [...(contract.documents || []), newDoc],
-        auditTrail: [...contract.auditTrail, {
+      const reader = new FileReader();
+
+      reader.onload = (event) => {
+        const base64 = event.target?.result as string;
+        
+        const newDoc: ContractDocument = {
           id: Math.random().toString(),
-          timestamp: Date.now(),
-          userId: currentUser.id,
-          userName: currentUser.name,
-          action: 'Uploaded Document',
-          details: file.name
-        }]
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          uploadDate: Date.now(),
+          base64: base64
+        };
+        
+        const updated = { 
+          ...contract, 
+          documents: [...(contract.documents || []), newDoc],
+          auditTrail: [...contract.auditTrail, {
+            id: Math.random().toString(),
+            timestamp: Date.now(),
+            userId: currentUser.id,
+            userName: currentUser.name,
+            action: 'Uploaded Document',
+            details: file.name
+          }]
+        };
+        onUpdate(updated);
       };
-      onUpdate(updated);
+
+      reader.readAsDataURL(file);
     }
+  };
+
+  const handleDownload = (doc: ContractDocument) => {
+    if (!doc.base64) {
+      alert("File content not available for download.");
+      return;
+    }
+    const link = document.createElement('a');
+    link.href = doc.base64;
+    link.download = doc.name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const hasUnsavedChanges = aiOutput !== (contract.aiRiskAnalysis || '');
@@ -453,6 +506,7 @@ export const ReviewDetail: React.FC<ReviewDetailProps> = ({ contract, currentUse
                       : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
                     }`}
                   >
+                    {tab === 'AI Chat' && <Sparkles size={14} className={activeTab === tab ? "text-blue-600" : "text-slate-400"} />}
                     {tab}
                     {count > 0 && (
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${activeTab === tab ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'}`}>
@@ -758,6 +812,92 @@ export const ReviewDetail: React.FC<ReviewDetailProps> = ({ contract, currentUse
               </div>
             )}
 
+            {activeTab === 'AI Chat' && (
+               <div className="flex flex-col h-full animate-fade-in relative bg-white dark:bg-slate-800 rounded-lg">
+                  {chatMessages.length === 0 ? (
+                    <div className="flex-1 flex flex-col items-center justify-center text-center p-8 space-y-6">
+                        <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                           <Sparkles size={32} className="text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <div>
+                           <h3 className="text-lg font-bold text-slate-900 dark:text-white">Ask AI about this contract</h3>
+                           <p className="text-slate-500 dark:text-slate-400 max-w-sm mx-auto mt-2">
+                             I have full context of the Scope, Financials, and Risk profile. How can I help?
+                           </p>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-md">
+                           {['Summarize key risks', 'Explain payment terms', 'Is indemnity capped?', 'List important dates'].map((prompt, i) => (
+                              <button 
+                                key={i}
+                                onClick={() => handleSendChatMessage(prompt)}
+                                className="text-sm text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600 px-4 py-3 rounded-lg transition-colors flex items-center justify-between group"
+                              >
+                                {prompt}
+                                <ArrowUpCircle size={14} className="opacity-0 group-hover:opacity-100 transition-opacity rotate-90" />
+                              </button>
+                           ))}
+                        </div>
+                    </div>
+                  ) : (
+                    <div className="flex-1 overflow-y-auto p-4 space-y-6">
+                       {chatMessages.map((msg, idx) => (
+                         <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`max-w-[85%] rounded-2xl px-5 py-3.5 text-sm leading-relaxed shadow-sm ${
+                               msg.role === 'user' 
+                               ? 'bg-blue-600 text-white rounded-br-none' 
+                               : 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-bl-none border border-slate-200 dark:border-slate-600'
+                            }`}>
+                               {msg.role === 'model' && (
+                                  <div className="flex items-center gap-2 mb-2 text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
+                                     <Sparkles size={12} /> AI Assistant
+                                  </div>
+                               )}
+                               <div className="whitespace-pre-wrap">{msg.text}</div>
+                            </div>
+                         </div>
+                       ))}
+                       {isChatLoading && (
+                          <div className="flex justify-start animate-pulse">
+                             <div className="bg-slate-100 dark:bg-slate-700 rounded-2xl rounded-bl-none px-6 py-4 flex items-center gap-2">
+                                <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                                <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                                <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                             </div>
+                          </div>
+                       )}
+                       <div ref={chatBottomRef} />
+                    </div>
+                  )}
+
+                  <div className="p-4 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+                     <div className="relative flex items-center gap-2">
+                        <input 
+                           value={chatInput}
+                           onChange={(e) => setChatInput(e.target.value)}
+                           onKeyDown={(e) => {
+                             if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                handleSendChatMessage();
+                             }
+                           }}
+                           placeholder="Ask a question about this contract..."
+                           className="flex-1 border border-slate-300 dark:border-slate-600 rounded-full py-3 px-5 pr-12 text-sm bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none shadow-sm"
+                        />
+                        <button 
+                           onClick={() => handleSendChatMessage()}
+                           disabled={!chatInput.trim() || isChatLoading}
+                           className="absolute right-1.5 p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                           <Send size={16} />
+                        </button>
+                     </div>
+                     <p className="text-[10px] text-slate-400 text-center mt-2">
+                       AI can make mistakes. Verify critical information in the Documents tab.
+                     </p>
+                  </div>
+               </div>
+            )}
+
             {activeTab === 'Documents' && (
               <div className="space-y-6 animate-fade-in">
                  <div className="flex justify-between items-center">
@@ -796,7 +936,12 @@ export const ReviewDetail: React.FC<ReviewDetailProps> = ({ contract, currentUse
                               <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{(doc.size / 1024).toFixed(0)} KB</td>
                               <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{new Date(doc.uploadDate).toLocaleDateString()}</td>
                               <td className="px-4 py-3 text-right">
-                                <button className="text-blue-600 dark:text-blue-400 hover:underline mr-3">Download</button>
+                                <button 
+                                  onClick={() => handleDownload(doc)}
+                                  className="text-blue-600 dark:text-blue-400 hover:underline mr-3"
+                                >
+                                  Download
+                                </button>
                               </td>
                             </tr>
                           ))
@@ -1139,7 +1284,7 @@ export const ReviewDetail: React.FC<ReviewDetailProps> = ({ contract, currentUse
                         <CheckCircle size={16} className="text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
                         <div>
                            <p className="text-xs font-bold text-green-800 dark:text-green-300 mb-1">Standard Risk Profile</p>
-                           <p className="text-[10px] text-green-700 dark:text-green-300 leading-tight">
+                           <p className="text-xs text-green-700 dark:text-green-300 leading-tight">
                              No mandatory high-risk triggers detected.
                            </p>
                         </div>

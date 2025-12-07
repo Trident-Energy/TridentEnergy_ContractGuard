@@ -156,18 +156,26 @@ export const NewSubmission: React.FC<NewSubmissionProps> = ({ user, initialData,
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
-      const newDoc: ContractDocument = {
-        id: Math.random().toString(),
-        name: file.name,
-        type: file.type,
-        size: file.size,
-        uploadDate: Date.now()
+      const reader = new FileReader();
+      
+      reader.onload = (event) => {
+        const base64 = event.target?.result as string;
+        const newDoc: ContractDocument = {
+          id: Math.random().toString(),
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          uploadDate: Date.now(),
+          base64: base64
+        };
+        
+        setFormData(prev => ({
+          ...prev,
+          documents: [...(prev.documents || []), newDoc]
+        }));
       };
       
-      setFormData(prev => ({
-        ...prev,
-        documents: [...(prev.documents || []), newDoc]
-      }));
+      reader.readAsDataURL(file);
     }
   };
 

@@ -86,6 +86,7 @@ export interface ContractDocument {
   type: string;
   size: number; // in bytes
   uploadDate: number;
+  base64?: string; // Data URL for AI analysis
 }
 
 export interface AdHocReviewer {
