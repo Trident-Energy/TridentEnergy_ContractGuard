@@ -3,7 +3,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { ContractData, ContractStatus, Entity, User } from '../types';
 import { MOCK_USERS } from '../constants';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
-import { AlertCircle, CheckCircle, Clock, DollarSign, Search, Filter, ArrowRight, MessageSquare, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Paperclip, UserCheck } from 'lucide-react';
+import { AlertCircle, CheckCircle, Clock, DollarSign, Search, Filter, ArrowRight, MessageSquare, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Paperclip, UserCheck, Briefcase, Layers, XCircle, User as UserIcon } from 'lucide-react';
 
 interface DashboardProps {
   contracts: ContractData[];
@@ -11,7 +11,15 @@ interface DashboardProps {
   currentUser: User;
 }
 
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+const STATUS_COLORS: Record<string, string> = {
+  [ContractStatus.SUBMITTED]: '#3b82f6',       // Blue
+  [ContractStatus.PENDING_CEO]: '#f97316',     // Orange
+  [ContractStatus.APPROVED]: '#22c55e',        // Green
+  [ContractStatus.REJECTED]: '#ef4444',        // Red
+  [ContractStatus.CHANGES_REQUESTED]: '#eab308', // Yellow
+  [ContractStatus.DRAFT]: '#94a3b8',           // Slate
+};
+
 const FLAG_URLS: Record<string, string> = {
   'London': 'https://flagcdn.com/w80/gb.png',
   'Brazil': 'https://flagcdn.com/w80/br.png',
@@ -21,16 +29,44 @@ const FLAG_URLS: Record<string, string> = {
 
 export const Dashboard: React.FC<DashboardProps> = ({ contracts, onViewContract, currentUser }) => {
   const [selectedEntity, setSelectedEntity] = useState<string | 'ALL'>('ALL');
-  // selectedStatus can be a standard Status enum, 'ALL', or 'REVIEW' (which aggregates Pending states)
-  const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
-  const [isHighRiskFilter, setIsHighRiskFilter] = useState(false);
   
+  // Filters
+  const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
+  const [selectedType, setSelectedType] = useState<string>('ALL');
+  const [selectedDepartment, setSelectedDepartment] = useState<string>('ALL');
+  const [selectedSubmitter, setSelectedSubmitter] = useState<string>('ALL');
+  const [isHighRiskFilter, setIsHighRiskFilter] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(25);
+
+  // Compute available departments based on selected Entity (to avoid showing empty filters)
+  const availableDepartments = useMemo(() => {
+    let data = [...contracts];
+    if (selectedEntity !== 'ALL') {
+      data = data.filter(c => 
+        selectedEntity === 'London' ? c.entity === Entity.LONDON :
+        selectedEntity === 'Brazil' ? c.entity === Entity.BRAZIL :
+        selectedEntity === 'Congo' ? c.entity === Entity.CONGO :
+        c.entity === Entity.EQUATORIAL_GUINEA
+      );
+    }
+    const depts = new Set(data.map(c => c.department).filter(Boolean));
+    return Array.from(depts).sort();
+  }, [contracts, selectedEntity]);
+
+  // Compute available submitters based on current contracts
+  const availableSubmitters = useMemo(() => {
+    const ids = new Set(contracts.map(c => c.submitterId).filter(Boolean));
+    return Array.from(ids).map(id => {
+        const u = MOCK_USERS.find(user => user.id === id);
+        return { id, name: u ? u.name : 'Unknown' };
+    }).sort((a, b) => a.name.localeCompare(b.name));
+  }, [contracts]);
 
   // Filter & Sort Logic
   const filteredContracts = useMemo(() => {
@@ -51,6 +87,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ contracts, onViewContract,
       data = data.filter(c => c.status === ContractStatus.SUBMITTED || c.status === ContractStatus.PENDING_CEO);
     } else if (selectedStatus !== 'ALL') {
       data = data.filter(c => c.status === selectedStatus);
+    }
+
+    // Filter by Type
+    if (selectedType !== 'ALL') {
+      data = data.filter(c => c.contractType === selectedType);
+    }
+
+    // Filter by Department
+    if (selectedDepartment !== 'ALL') {
+      data = data.filter(c => c.department === selectedDepartment);
+    }
+
+    // Filter by Submitter
+    if (selectedSubmitter !== 'ALL') {
+      data = data.filter(c => c.submitterId === selectedSubmitter);
     }
 
     // Filter by High Risk
@@ -78,12 +129,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ contracts, onViewContract,
     });
     
     return data;
-  }, [contracts, selectedEntity, selectedStatus, searchTerm, sortOrder, isHighRiskFilter]);
+  }, [contracts, selectedEntity, selectedStatus, selectedType, selectedDepartment, selectedSubmitter, searchTerm, sortOrder, isHighRiskFilter]);
 
   // Reset pagination when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedEntity, selectedStatus, searchTerm, itemsPerPage, isHighRiskFilter]);
+  }, [selectedEntity, selectedStatus, selectedType, selectedDepartment, selectedSubmitter, searchTerm, itemsPerPage, isHighRiskFilter]);
 
   // Pagination Logic
   const totalPages = Math.ceil(filteredContracts.length / itemsPerPage);
@@ -92,8 +143,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ contracts, onViewContract,
     return filteredContracts.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredContracts, currentPage, itemsPerPage]);
 
-  // Metrics Calculation (from ALL contracts, not filtered, unless we want dashboard to update based on entity filter only)
-  // Let's compute based on current entity filter but ignoring other filters to keep KPIs stable relative to view context
+  // Metrics Calculation
   const kpiBaseContracts = useMemo(() => {
     if (selectedEntity === 'ALL') return contracts;
     return contracts.filter(c => 
@@ -129,7 +179,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ contracts, onViewContract,
 
   const FlagButton = ({ label, flagUrl }: { label: string, flagUrl: string }) => (
     <button 
-      onClick={() => setSelectedEntity(selectedEntity === label ? 'ALL' : label)}
+      onClick={() => {
+        setSelectedEntity(selectedEntity === label ? 'ALL' : label);
+        // Reset department when entity changes as departments might not exist in new entity
+        setSelectedDepartment('ALL');
+      }}
       className={`group relative flex flex-col items-center p-3 rounded-xl transition-all duration-200 border-2 ${
         selectedEntity === label 
         ? 'bg-blue-50 border-blue-500 shadow-md dark:bg-blue-900/20 dark:border-blue-400' 
@@ -173,20 +227,29 @@ export const Dashboard: React.FC<DashboardProps> = ({ contracts, onViewContract,
     setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
   };
 
-  // KPI Actions
   const handleKPIClick = (type: 'PENDING' | 'VALUE' | 'RISK' | 'AVG') => {
      if (type === 'PENDING') {
-       setSelectedStatus('REVIEW'); // Set to composite status for "Review"
+       setSelectedStatus('REVIEW');
        setIsHighRiskFilter(false);
      } else if (type === 'RISK') {
        setSelectedStatus('ALL');
        setIsHighRiskFilter(true);
      } else {
-       // Reset
        setSelectedStatus('ALL');
        setIsHighRiskFilter(false);
      }
   };
+
+  const clearFilters = () => {
+    setSelectedStatus('ALL');
+    setSelectedType('ALL');
+    setSelectedDepartment('ALL');
+    setSelectedSubmitter('ALL');
+    setSearchTerm('');
+    setIsHighRiskFilter(false);
+  };
+
+  const hasActiveFilters = selectedStatus !== 'ALL' || selectedType !== 'ALL' || selectedDepartment !== 'ALL' || selectedSubmitter !== 'ALL' || searchTerm !== '' || isHighRiskFilter;
 
   return (
     <div className="space-y-8 animate-fade-in pb-10">
@@ -206,7 +269,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ contracts, onViewContract,
         </div>
       </div>
 
-      {/* 2. KPI Cards - Clickable */}
+      {/* 2. KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <KPICard 
           title="Contracts Under Review" 
@@ -253,7 +316,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ contracts, onViewContract,
                   cy="50%"
                   innerRadius={60}
                   outerRadius={80}
-                  fill="#8884d8"
                   paddingAngle={5}
                   dataKey="value"
                   stroke="none"
@@ -263,8 +325,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ contracts, onViewContract,
                   }}
                   cursor="pointer"
                 >
-                  {metrics.statusData.map((_entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  {metrics.statusData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.name] || '#94a3b8'} />
                   ))}
                 </Pie>
                 <Tooltip 
@@ -305,18 +367,25 @@ export const Dashboard: React.FC<DashboardProps> = ({ contracts, onViewContract,
 
       {/* 4. Contract Register Grid */}
       <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
-         <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50 dark:bg-slate-800/50">
-           <h2 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
-             Contract Register
-             {isHighRiskFilter && (
-                <span className="px-2 py-0.5 rounded text-xs bg-orange-100 text-orange-700 border border-orange-200">Filtered: High Risk</span>
-             )}
-             <span className="text-xs font-normal text-slate-500 bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded-full">
-               {filteredContracts.length}
-             </span>
-           </h2>
-           <div className="flex gap-3 w-full sm:w-auto">
-             <div className="relative flex-1 sm:flex-none">
+         <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-slate-50 dark:bg-slate-800/50">
+           
+           <div className="flex flex-col gap-1">
+             <h2 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
+               Contract Register
+               {isHighRiskFilter && (
+                  <span className="px-2 py-0.5 rounded text-xs bg-orange-100 text-orange-700 border border-orange-200">High Risk Only</span>
+               )}
+               <span className="text-xs font-normal text-slate-500 bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded-full">
+                 {filteredContracts.length}
+               </span>
+             </h2>
+           </div>
+
+           {/* Toolbar controls */}
+           <div className="flex flex-col sm:flex-row flex-wrap gap-3 w-full xl:w-auto items-start sm:items-center">
+             
+             {/* Search */}
+             <div className="relative flex-grow sm:flex-grow-0 min-w-[200px]">
                <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
                <input 
                  type="text" 
@@ -327,20 +396,81 @@ export const Dashboard: React.FC<DashboardProps> = ({ contracts, onViewContract,
                />
              </div>
              
-             <div className="flex items-center gap-2">
-               <Filter size={16} className="text-slate-500" />
+             {/* Status Filter */}
+             <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2 py-1.5 focus-within:ring-2 ring-blue-500">
+               <Filter size={16} className="text-slate-400" />
                <select 
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
-                className="border border-slate-300 dark:border-slate-600 rounded-lg py-2 px-3 text-sm bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 focus:ring-2 ring-blue-500 outline-none"
+                className="bg-transparent text-sm text-slate-700 dark:text-slate-300 outline-none cursor-pointer max-w-[120px]"
+                title="Filter by Status"
                >
                  <option value="ALL">All Statuses</option>
-                 <option value="REVIEW">Under Review (All Pending)</option>
+                 <option value="REVIEW">Under Review</option>
                  {Object.values(ContractStatus).map(status => (
                    <option key={status} value={status}>{status}</option>
                  ))}
                </select>
              </div>
+
+             {/* Type Filter */}
+             <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2 py-1.5 focus-within:ring-2 ring-blue-500">
+               <Layers size={16} className="text-slate-400" />
+               <select 
+                value={selectedType}
+                onChange={(e) => setSelectedType(e.target.value)}
+                className="bg-transparent text-sm text-slate-700 dark:text-slate-300 outline-none cursor-pointer max-w-[120px]"
+                title="Filter by Type"
+               >
+                 <option value="ALL">All Types</option>
+                 <option value="CAPEX">CAPEX</option>
+                 <option value="OPEX">OPEX</option>
+                 <option value="MIXED">MIXED</option>
+               </select>
+             </div>
+
+             {/* Department Filter */}
+             <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2 py-1.5 focus-within:ring-2 ring-blue-500">
+               <Briefcase size={16} className="text-slate-400" />
+               <select 
+                value={selectedDepartment}
+                onChange={(e) => setSelectedDepartment(e.target.value)}
+                className="bg-transparent text-sm text-slate-700 dark:text-slate-300 outline-none cursor-pointer max-w-[120px]"
+                title="Filter by Department"
+               >
+                 <option value="ALL">All Depts</option>
+                 {availableDepartments.map(dept => (
+                   <option key={dept} value={dept}>{dept}</option>
+                 ))}
+               </select>
+             </div>
+
+             {/* Submitter Filter */}
+             <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2 py-1.5 focus-within:ring-2 ring-blue-500">
+               <UserIcon size={16} className="text-slate-400" />
+               <select 
+                value={selectedSubmitter}
+                onChange={(e) => setSelectedSubmitter(e.target.value)}
+                className="bg-transparent text-sm text-slate-700 dark:text-slate-300 outline-none cursor-pointer max-w-[120px]"
+                title="Filter by Submitter"
+               >
+                 <option value="ALL">All Submitters</option>
+                 {availableSubmitters.map(s => (
+                   <option key={s.id} value={s.id}>{s.name}</option>
+                 ))}
+               </select>
+             </div>
+
+             {/* Clear Filters Button */}
+             {hasActiveFilters && (
+               <button 
+                onClick={clearFilters}
+                className="flex items-center gap-1 px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                title="Clear All Filters"
+               >
+                 <XCircle size={16} /> Clear
+               </button>
+             )}
            </div>
          </div>
          
@@ -350,12 +480,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ contracts, onViewContract,
                <tr>
                  <th className="px-6 py-4">Status</th>
                  <th className="px-6 py-4">Contract Title</th>
-                 <th className="px-6 py-4">Project</th>
-                 <th className="px-6 py-4">Submitter</th>
+                 <th className="px-6 py-4">Type</th>
+                 <th className="px-6 py-4">Department</th>
                  <th className="px-6 py-4">Contractor</th>
+                 <th className="px-6 py-4">Submitted By</th>
                  <th className="px-6 py-4">Entity</th>
                  <th className="px-6 py-4">Amount (USD)</th>
-                 <th className="px-6 py-4">Role</th>
                  <th 
                   className="px-6 py-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors select-none"
                   onClick={toggleSortOrder}
@@ -385,17 +515,36 @@ export const Dashboard: React.FC<DashboardProps> = ({ contracts, onViewContract,
                      <span className={`px-2 py-1 text-xs font-bold rounded-full border ${getStatusBadge(c.status)}`}>
                        {c.status}
                      </span>
+                     {isAdHoc && (
+                        <div className="mt-1 flex items-center gap-1 text-[10px] text-purple-600 dark:text-purple-400 font-bold">
+                           <UserCheck size={10} /> Ad-Hoc
+                        </div>
+                     )}
                    </td>
                    <td className="px-6 py-4 text-sm font-medium text-slate-900 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                      {c.title || c.contractorName}
+                     {c.project && <div className="text-xs text-slate-500 font-normal mt-0.5">{c.project}</div>}
                    </td>
                    <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">
-                     {c.project || '-'}
+                     <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
+                        c.contractType === 'CAPEX' ? 'bg-orange-100 text-orange-700' : 
+                        c.contractType === 'OPEX' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-700'
+                     }`}>
+                       {c.contractType}
+                     </span>
                    </td>
                    <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">
-                     {MOCK_USERS.find(u => u.id === c.submitterId)?.name || 'Unknown'}
+                     {c.department}
                    </td>
                    <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300 font-medium">{c.contractorName}</td>
+                   <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">
+                     <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-600 dark:text-slate-300">
+                           {MOCK_USERS.find(u => u.id === c.submitterId)?.name.charAt(0) || '?'}
+                        </div>
+                        <span className="truncate max-w-[100px]" title={MOCK_USERS.find(u => u.id === c.submitterId)?.name}>{MOCK_USERS.find(u => u.id === c.submitterId)?.name || 'Unknown'}</span>
+                     </div>
+                   </td>
                    <td className="px-6 py-4">
                      <div className="flex items-center" title={c.entity}>
                         <img 
@@ -406,14 +555,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ contracts, onViewContract,
                      </div>
                    </td>
                    <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300 font-mono">${c.amount.toLocaleString()}</td>
-                   <td className="px-6 py-4">
-                      {isAdHoc && (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700 border border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800 shadow-sm whitespace-nowrap">
-                          <UserCheck size={12} className="text-purple-600 dark:text-purple-400" />
-                          Ad-Hoc
-                        </span>
-                      )}
-                   </td>
                    <td className="px-6 py-4 text-sm text-slate-500 dark:text-slate-400">{new Date(c.submissionDate || Date.now()).toLocaleDateString()}</td>
                    <td className="px-6 py-4 text-center">
                      {c.documents && c.documents.length > 0 && (

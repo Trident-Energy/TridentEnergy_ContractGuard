@@ -491,17 +491,16 @@ export const ReviewDetail: React.FC<ReviewDetailProps> = ({ contract, currentUse
                     </div>
                  </div>
 
+                 {/* Flattened Grid for Alignment */}
                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     
-                    {/* Left Column: Financials & Parties */}
-                    <div className="space-y-6">
                        {/* Financial Details Card */}
-                       <div className="bg-white dark:bg-slate-800 border border-emerald-100 dark:border-emerald-900/30 rounded-lg shadow-sm overflow-hidden">
+                       <div className="bg-white dark:bg-slate-800 border border-emerald-100 dark:border-emerald-900/30 rounded-lg shadow-sm overflow-hidden flex flex-col h-full">
                           <div className="bg-emerald-50 dark:bg-emerald-900/20 px-4 py-3 border-b border-emerald-100 dark:border-emerald-900/30 flex items-center gap-2">
                              <DollarSign size={18} className="text-emerald-600 dark:text-emerald-400" />
                              <h3 className="font-bold text-emerald-800 dark:text-emerald-300">Financial Overview</h3>
                           </div>
-                          <div className="p-4 grid grid-cols-2 gap-4">
+                          <div className="p-4 grid grid-cols-2 gap-4 flex-1">
                              <div>
                                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase">Original Amount</p>
                                <p className="font-medium text-slate-900 dark:text-white text-lg">
@@ -527,13 +526,37 @@ export const ReviewDetail: React.FC<ReviewDetailProps> = ({ contract, currentUse
                           </div>
                        </div>
 
+                       {/* Timeline Card */}
+                       <div className="bg-white dark:bg-slate-800 border border-purple-100 dark:border-purple-900/30 rounded-lg shadow-sm overflow-hidden flex flex-col h-full">
+                          <div className="bg-purple-50 dark:bg-purple-900/20 px-4 py-3 border-b border-purple-100 dark:border-purple-900/30 flex items-center gap-2">
+                             <Calendar size={18} className="text-purple-600 dark:text-purple-400" />
+                             <h3 className="font-bold text-purple-800 dark:text-purple-300">Duration & Timeline</h3>
+                          </div>
+                          <div className="p-4 grid grid-cols-2 gap-4 flex-1">
+                             <div>
+                               <p className="text-xs text-slate-500 dark:text-slate-400 uppercase">Start Date</p>
+                               <p className="font-medium text-slate-900 dark:text-white">{contract.startDate}</p>
+                             </div>
+                             <div>
+                               <p className="text-xs text-slate-500 dark:text-slate-400 uppercase">End Date</p>
+                               <p className="font-medium text-slate-900 dark:text-white">{contract.endDate}</p>
+                             </div>
+                             <div className="col-span-2 flex items-center gap-2 mt-1">
+                                <span className={`w-2 h-2 rounded-full ${contract.hasExtensionOptions ? 'bg-blue-500' : 'bg-slate-300'}`}></span>
+                                <span className="text-sm text-slate-600 dark:text-slate-300">
+                                   {contract.hasExtensionOptions ? 'Extension Options Available' : 'No Extension Options'}
+                                </span>
+                             </div>
+                          </div>
+                       </div>
+
                        {/* Parties Card */}
-                       <div className="bg-white dark:bg-slate-800 border border-indigo-100 dark:border-indigo-900/30 rounded-lg shadow-sm overflow-hidden">
+                       <div className="bg-white dark:bg-slate-800 border border-indigo-100 dark:border-indigo-900/30 rounded-lg shadow-sm overflow-hidden flex flex-col h-full">
                           <div className="bg-indigo-50 dark:bg-indigo-900/20 px-4 py-3 border-b border-indigo-100 dark:border-indigo-900/30 flex items-center gap-2">
                              <Building size={18} className="text-indigo-600 dark:text-indigo-400" />
                              <h3 className="font-bold text-indigo-800 dark:text-indigo-300">Involved Parties</h3>
                           </div>
-                          <div className="p-4 space-y-3">
+                          <div className="p-4 space-y-3 flex-1">
                              <div className="flex justify-between border-b border-slate-100 dark:border-slate-700/50 pb-2">
                                <span className="text-sm text-slate-500 dark:text-slate-400">Contractor</span>
                                <span className="font-medium text-slate-900 dark:text-white text-right">{contract.contractorName}</span>
@@ -552,41 +575,14 @@ export const ReviewDetail: React.FC<ReviewDetailProps> = ({ contract, currentUse
                              </div>
                           </div>
                        </div>
-                    </div>
 
-                    {/* Right Column: Timeline, Summary & Docs */}
-                    <div className="space-y-6">
-                        {/* Timeline Card */}
-                        <div className="bg-white dark:bg-slate-800 border border-purple-100 dark:border-purple-900/30 rounded-lg shadow-sm overflow-hidden">
-                          <div className="bg-purple-50 dark:bg-purple-900/20 px-4 py-3 border-b border-purple-100 dark:border-purple-900/30 flex items-center gap-2">
-                             <Calendar size={18} className="text-purple-600 dark:text-purple-400" />
-                             <h3 className="font-bold text-purple-800 dark:text-purple-300">Duration & Timeline</h3>
-                          </div>
-                          <div className="p-4 grid grid-cols-2 gap-4">
-                             <div>
-                               <p className="text-xs text-slate-500 dark:text-slate-400 uppercase">Start Date</p>
-                               <p className="font-medium text-slate-900 dark:text-white">{contract.startDate}</p>
-                             </div>
-                             <div>
-                               <p className="text-xs text-slate-500 dark:text-slate-400 uppercase">End Date</p>
-                               <p className="font-medium text-slate-900 dark:text-white">{contract.endDate}</p>
-                             </div>
-                             <div className="col-span-2 flex items-center gap-2 mt-1">
-                                <span className={`w-2 h-2 rounded-full ${contract.hasExtensionOptions ? 'bg-blue-500' : 'bg-slate-300'}`}></span>
-                                <span className="text-sm text-slate-600 dark:text-slate-300">
-                                   {contract.hasExtensionOptions ? 'Extension Options Available' : 'No Extension Options'}
-                                </span>
-                             </div>
-                          </div>
-                       </div>
-
-                       {/* Executive Summary Card (Redesigned) */}
-                       <div className="bg-white dark:bg-slate-800 border border-cyan-100 dark:border-cyan-900/30 rounded-lg shadow-sm overflow-hidden">
+                       {/* Executive Summary Card */}
+                       <div className="bg-white dark:bg-slate-800 border border-cyan-100 dark:border-cyan-900/30 rounded-lg shadow-sm overflow-hidden flex flex-col h-full">
                           <div className="bg-cyan-50 dark:bg-cyan-900/20 px-4 py-3 border-b border-cyan-100 dark:border-cyan-900/30 flex items-center gap-2">
                              <FileText size={18} className="text-cyan-600 dark:text-cyan-400" />
                              <h3 className="font-bold text-cyan-800 dark:text-cyan-300">Executive Summary</h3>
                           </div>
-                          <div className="p-4 space-y-4">
+                          <div className="p-4 space-y-4 flex-1">
                              <div>
                                <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-2">Background & Need</h4>
                                <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-900/50 p-3 rounded border border-slate-100 dark:border-slate-800">
@@ -606,7 +602,7 @@ export const ReviewDetail: React.FC<ReviewDetailProps> = ({ contract, currentUse
                        {contract.documents && contract.documents.length > 0 && (
                           <button 
                             onClick={() => setActiveTab('Documents')}
-                            className="w-full flex items-center justify-between p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                            className="lg:col-span-2 w-full flex items-center justify-between p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
                           >
                              <div className="flex items-center gap-3">
                                 <FileText size={20} className="text-blue-500" />
@@ -620,7 +616,6 @@ export const ReviewDetail: React.FC<ReviewDetailProps> = ({ contract, currentUse
                              </div>
                           </button>
                        )}
-                    </div>
                  </div>
 
                  <section>

@@ -270,7 +270,10 @@ export const NewSubmission: React.FC<NewSubmissionProps> = ({ user, initialData,
     <div className="max-w-[96%] mx-auto bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col h-[calc(100vh-140px)]">
       
       {/* Header / Stepper */}
-      <div className="bg-slate-900 dark:bg-black text-white p-6">
+      <div 
+        className="text-white p-6"
+        style={{ backgroundColor: 'rgb(50, 90, 120)' }}
+      >
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold">{initialData ? 'Edit Contract' : 'New High-Risk Contract Submission'}</h2>
           {initialData && (
@@ -290,12 +293,12 @@ export const NewSubmission: React.FC<NewSubmissionProps> = ({ user, initialData,
             />
           ))}
         </div>
-        <div className="flex justify-between mt-2 text-xs text-slate-400 font-medium tracking-wide uppercase">
+        <div className="flex justify-between mt-2 text-xs text-slate-200 font-medium tracking-wide uppercase">
           {TABS.map((tab, idx) => (
             <button 
               key={idx} 
               onClick={() => setStep(idx)}
-              className={`hover:text-blue-400 transition-colors focus:outline-none ${idx === step ? 'text-blue-400 font-bold' : ''}`}
+              className={`hover:text-blue-100 transition-colors focus:outline-none ${idx === step ? 'text-white font-bold' : ''}`}
             >
               {tab}
             </button>
