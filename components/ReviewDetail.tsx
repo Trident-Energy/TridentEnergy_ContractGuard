@@ -4,7 +4,7 @@ import { ContractData, User, UserRole, ContractStatus, ContractDocument, Comment
 import { analyzeContractRisks, sendContractQuery, ChatMessage } from '../services/geminiService';
 import { MOCK_USERS } from '../constants';
 import { formatEmailBody, triggerEmailNotification } from '../utils/notificationUtils';
-import { CheckCircle, XCircle, FileText, Download, MessageSquare, Bot, AlertTriangle, Upload, Send, Clock, AlertCircle, Save, RotateCcw, X, ShieldCheck, Edit3, ArrowUpCircle, UserPlus, Users, Briefcase, Calendar, DollarSign, Building, ThumbsUp, Sparkles, HelpCircle } from 'lucide-react';
+import { CheckCircle, XCircle, FileText, Download, MessageSquare, Bot, AlertTriangle, Upload, Send, Clock, AlertCircle, Save, RotateCcw, X, ShieldCheck, Edit3, ArrowUpCircle, UserPlus, Users, Briefcase, Calendar, DollarSign, Building, ThumbsUp, Sparkles } from 'lucide-react';
 
 interface ReviewDetailProps {
   contract: ContractData;
